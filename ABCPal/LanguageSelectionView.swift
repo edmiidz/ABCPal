@@ -390,6 +390,7 @@ struct AlphaInfoRow: View {
 
 struct AlphaShareView: View {
     @Binding var isShowing: Bool
+    @State private var showShareSheet = false
     let appURL = "https://nikipedia.edmiidz.com/index.php?title=ABCPal"
     
     var body: some View {
@@ -409,7 +410,7 @@ struct AlphaShareView: View {
                     .foregroundColor(.secondary)
                 
                 Button(action: {
-                    shareApp()
+                    showShareSheet = true
                 }) {
                     HStack {
                         Image(systemName: "square.and.arrow.up")
@@ -433,15 +434,9 @@ struct AlphaShareView: View {
                     }
                 }
             }
-        }
-    }
-    
-    func shareApp() {
-        let activityVC = UIActivityViewController(activityItems: [appURL], applicationActivities: nil)
-        
-        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootVC = scene.windows.first?.rootViewController {
-            rootVC.present(activityVC, animated: true)
+            .sheet(isPresented: $showShareSheet) {
+                ShareSheet(items: ["Check out ABCPal, a fun app to help kids learn the alphabet!", URL(string: appURL)!])
+            }
         }
     }
 }

@@ -58,7 +58,6 @@ struct AboutView: View {
                 InfoRow(icon: "speaker.wave.3.fill", title: "Features", content: "Text-to-speech, interactive quizzes, and bilingual support")
                 
                 InfoRow(icon: "envelope.fill", title: "Support", content: "edmiidzapps@gmail.com")
-                
                 InfoRow(icon: "c.circle", title: "Copyright", content: "© 2025 Nik Edmiidz")
                 
                 InfoRow(icon: "1.circle", title: "Version", content: "1.0")
@@ -96,6 +95,7 @@ struct InfoRow: View {
 
 struct ShareView: View {
     @Binding var isShowing: Bool
+    @State private var showShareSheet = false
     let appURL = "https://nikipedia.edmiidz.com/index.php?title=ABCPal"
     
     var body: some View {
@@ -137,7 +137,7 @@ struct ShareView: View {
                 .foregroundColor(.secondary)
             
             Button(action: {
-                shareApp()
+                showShareSheet = true
             }) {
                 HStack {
                     Image(systemName: "square.and.arrow.up")
@@ -153,30 +153,23 @@ struct ShareView: View {
             Spacer()
         }
         .padding()
+        .sheet(isPresented: $showShareSheet) {
+            ShareSheet(items: ["Check out ABCPal, a fun app to help kids learn the alphabet!", URL(string: appURL)!])
+        }
+    }
+}
+
+// Helper ShareSheet struct that wraps UIActivityViewController
+struct ShareSheet: UIViewControllerRepresentable {
+    var items: [Any]
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        return controller
     }
     
-    func shareApp() {
-        // Create the activity items
-        let items: [Any] = ["Check out ABCPal, a fun app to help kids learn the alphabet!", URL(string: appURL)!]
-        
-        // Create and present the UIActivityViewController
-        let activityVC = UIActivityViewController(activityItems: items, applicationActivities: nil)
-        
-        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootVC = scene.windows.first?.rootViewController {
-            // For iPad, set the popover presentation
-            if let popoverController = activityVC.popoverPresentationController,
-               UIDevice.current.userInterfaceIdiom == .pad {
-                popoverController.sourceView = rootVC.view
-                popoverController.sourceRect = CGRect(x: UIScreen.main.bounds.width / 2,
-                                                     y: UIScreen.main.bounds.height / 2,
-                                                     width: 0,
-                                                     height: 0)
-                popoverController.permittedArrowDirections = []
-            }
-            
-            rootVC.present(activityVC, animated: true)
-        }
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
+        // Not needed
     }
 }
 
