@@ -156,10 +156,25 @@ struct ShareView: View {
     }
     
     func shareApp() {
-        let activityVC = UIActivityViewController(activityItems: [appURL], applicationActivities: nil)
+        // Create the activity items
+        let items: [Any] = ["Check out ABCPal, a fun app to help kids learn the alphabet!", URL(string: appURL)!]
+        
+        // Create and present the UIActivityViewController
+        let activityVC = UIActivityViewController(activityItems: items, applicationActivities: nil)
         
         if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let rootVC = scene.windows.first?.rootViewController {
+            // For iPad, set the popover presentation
+            if let popoverController = activityVC.popoverPresentationController,
+               UIDevice.current.userInterfaceIdiom == .pad {
+                popoverController.sourceView = rootVC.view
+                popoverController.sourceRect = CGRect(x: UIScreen.main.bounds.width / 2,
+                                                     y: UIScreen.main.bounds.height / 2,
+                                                     width: 0,
+                                                     height: 0)
+                popoverController.permittedArrowDirections = []
+            }
+            
             rootVC.present(activityVC, animated: true)
         }
     }
