@@ -7,11 +7,11 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		9042AA192DB2C89B005A3F85 /* ABCPal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ABCPal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9042AA302DB2CACB005A3F85 /* ABCPal.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ABCPal.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		9042AA1B2DB2C89B005A3F85 /* ABCPal */ = {
+		9042AA322DB2CACB005A3F85 /* ABCPal */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = ABCPal;
 			sourceTree = "<group>";
@@ -19,7 +19,7 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		9042AA162DB2C89B005A3F85 /* Frameworks */ = {
+		9042AA2D2DB2CACB005A3F85 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -29,18 +29,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		9042AA102DB2C89B005A3F85 = {
+		9042AA272DB2CACB005A3F85 = {
 			isa = PBXGroup;
 			children = (
-				9042AA1B2DB2C89B005A3F85 /* ABCPal */,
-				9042AA1A2DB2C89B005A3F85 /* Products */,
+				9042AA322DB2CACB005A3F85 /* ABCPal */,
+				9042AA312DB2CACB005A3F85 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		9042AA1A2DB2C89B005A3F85 /* Products */ = {
+		9042AA312DB2CACB005A3F85 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				9042AA192DB2C89B005A3F85 /* ABCPal.app */,
+				9042AA302DB2CACB005A3F85 /* ABCPal.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,64 +48,64 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		9042AA182DB2C89B005A3F85 /* ABCPal */ = {
+		9042AA2F2DB2CACB005A3F85 /* ABCPal */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9042AA242DB2C89D005A3F85 /* Build configuration list for PBXNativeTarget "ABCPal" */;
+			buildConfigurationList = 9042AA3B2DB2CACC005A3F85 /* Build configuration list for PBXNativeTarget "ABCPal" */;
 			buildPhases = (
-				9042AA152DB2C89B005A3F85 /* Sources */,
-				9042AA162DB2C89B005A3F85 /* Frameworks */,
-				9042AA172DB2C89B005A3F85 /* Resources */,
+				9042AA2C2DB2CACB005A3F85 /* Sources */,
+				9042AA2D2DB2CACB005A3F85 /* Frameworks */,
+				9042AA2E2DB2CACB005A3F85 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				9042AA1B2DB2C89B005A3F85 /* ABCPal */,
+				9042AA322DB2CACB005A3F85 /* ABCPal */,
 			);
 			name = ABCPal;
 			packageProductDependencies = (
 			);
 			productName = ABCPal;
-			productReference = 9042AA192DB2C89B005A3F85 /* ABCPal.app */;
+			productReference = 9042AA302DB2CACB005A3F85 /* ABCPal.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		9042AA112DB2C89B005A3F85 /* Project object */ = {
+		9042AA282DB2CACB005A3F85 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1630;
 				LastUpgradeCheck = 1630;
 				TargetAttributes = {
-					9042AA182DB2C89B005A3F85 = {
+					9042AA2F2DB2CACB005A3F85 = {
 						CreatedOnToolsVersion = 16.3;
 					};
 				};
 			};
-			buildConfigurationList = 9042AA142DB2C89B005A3F85 /* Build configuration list for PBXProject "ABCPal" */;
+			buildConfigurationList = 9042AA2B2DB2CACB005A3F85 /* Build configuration list for PBXProject "ABCPal" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = 9042AA102DB2C89B005A3F85;
+			mainGroup = 9042AA272DB2CACB005A3F85;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 9042AA1A2DB2C89B005A3F85 /* Products */;
+			productRefGroup = 9042AA312DB2CACB005A3F85 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				9042AA182DB2C89B005A3F85 /* ABCPal */,
+				9042AA2F2DB2CACB005A3F85 /* ABCPal */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		9042AA172DB2C89B005A3F85 /* Resources */ = {
+		9042AA2E2DB2CACB005A3F85 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -115,7 +115,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		9042AA152DB2C89B005A3F85 /* Sources */ = {
+		9042AA2C2DB2CACB005A3F85 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -125,7 +125,7 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		9042AA222DB2C89D005A3F85 /* Debug */ = {
+		9042AA392DB2CACC005A3F85 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -189,7 +189,7 @@
 			};
 			name = Debug;
 		};
-		9042AA232DB2C89D005A3F85 /* Release */ = {
+		9042AA3A2DB2CACC005A3F85 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -246,7 +246,7 @@
 			};
 			name = Release;
 		};
-		9042AA252DB2C89D005A3F85 /* Debug */ = {
+		9042AA3C2DB2CACC005A3F85 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -274,7 +274,7 @@
 			};
 			name = Debug;
 		};
-		9042AA262DB2C89D005A3F85 /* Release */ = {
+		9042AA3D2DB2CACC005A3F85 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -305,25 +305,25 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		9042AA142DB2C89B005A3F85 /* Build configuration list for PBXProject "ABCPal" */ = {
+		9042AA2B2DB2CACB005A3F85 /* Build configuration list for PBXProject "ABCPal" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9042AA222DB2C89D005A3F85 /* Debug */,
-				9042AA232DB2C89D005A3F85 /* Release */,
+				9042AA392DB2CACC005A3F85 /* Debug */,
+				9042AA3A2DB2CACC005A3F85 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		9042AA242DB2C89D005A3F85 /* Build configuration list for PBXNativeTarget "ABCPal" */ = {
+		9042AA3B2DB2CACC005A3F85 /* Build configuration list for PBXNativeTarget "ABCPal" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9042AA252DB2C89D005A3F85 /* Debug */,
-				9042AA262DB2C89D005A3F85 /* Release */,
+				9042AA3C2DB2CACC005A3F85 /* Debug */,
+				9042AA3D2DB2CACC005A3F85 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 9042AA112DB2C89B005A3F85 /* Project object */;
+	rootObject = 9042AA282DB2CACB005A3F85 /* Project object */;
 }
