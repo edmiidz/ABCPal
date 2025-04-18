@@ -344,6 +344,8 @@ struct AlphaAboutView: View {
                     
                     AlphaInfoRow(icon: "speaker.wave.3.fill", title: "Features", content: "Text-to-speech, interactive quizzes, and bilingual support")
                     
+                    AlphaInfoRow(icon: "envelope.fill", title: "Support", content: "edmiidzapps@gmail.com")
+                    
                     AlphaInfoRow(icon: "c.circle", title: "Copyright", content: "© 2025 Nik Edmiidz")
                     
                     AlphaInfoRow(icon: "1.circle", title: "Version", content: "1.0")
