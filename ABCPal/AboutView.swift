@@ -57,6 +57,8 @@ struct AboutView: View {
                 
                 InfoRow(icon: "speaker.wave.3.fill", title: "Features", content: "Text-to-speech, interactive quizzes, and bilingual support")
                 
+                InfoRow(icon: "envelope.fill", title: "Support", content: "edmiidzapps@gmail.com")
+                
                 InfoRow(icon: "c.circle", title: "Copyright", content: "© 2025 Nik Edmiidz")
                 
                 InfoRow(icon: "1.circle", title: "Version", content: "1.0")
