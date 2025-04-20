@@ -244,17 +244,25 @@ struct QuizView: View {
 
             if count == 1 {
                 feedback = language == "fr-CA"
-                    ? "C'est \(correctLetter.uppercased())."
-                    : "That's right, it was \(correctLetter.uppercased())."
+                    ? correctLetter.uppercased()
+                    : correctLetter.uppercased()
             } else {
                 feedback = language == "fr-CA"
                     ? "Bravo!"
                     : "Good job!"
-                speak(text: feedback)
             }
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                startQuizFlow()
+            
+            // Say the feedback
+            speak(text: feedback)
+            
+            // Speak the letter one more time before moving on
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                speak(letter: correctLetter)
+                
+                // After speaking the letter, start the next quiz
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    startQuizFlow()
+                }
             }
         } else {
             feedback = language == "fr-CA"
