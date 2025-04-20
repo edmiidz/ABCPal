@@ -24,6 +24,7 @@ struct QuizView: View {
     @State private var areButtonsDisabled = false
     @State private var useLandscapeLayout = true
     @State private var celebrationLetter: String? = nil
+    @State private var thinkingLetter: String? = nil
     
     // Get the user name from UserDefaults
     var userName: String {
@@ -99,6 +100,11 @@ struct QuizView: View {
                                             // Show celebration emoji if this is the correct letter that was just selected
                                             if celebrationLetter == options[index] {
                                                 Text("🎉")
+                                                    .font(.largeTitle)
+                                            }
+                                            // Show thinking emoji if this is a wrong letter that was just selected
+                                            if thinkingLetter == options[index] {
+                                                Text("🤔")
                                                     .font(.largeTitle)
                                             }
                                         }
@@ -204,6 +210,11 @@ struct QuizView: View {
                                     Text("🎉")
                                         .font(.largeTitle)
                                 }
+                                // Show thinking emoji if this is a wrong letter that was just selected
+                                if thinkingLetter == letter {
+                                    Text("🤔")
+                                        .font(.largeTitle)
+                                }
                             }
                             .frame(minWidth: 150, minHeight: 60)
                             .background(Color.blue.opacity(0.2))
@@ -280,6 +291,9 @@ struct QuizView: View {
                 startQuizFlow()
             }
         } else {
+            // Mark the wrong selection with thinking emoji
+            thinkingLetter = selected
+            
             feedback = language == "fr-CA"
                 ? "Non, c'est \(selected.uppercased())."
                 : "No, that is \(selected.uppercased())."
@@ -291,7 +305,8 @@ struct QuizView: View {
                 }
             }
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                thinkingLetter = nil
                 feedback = ""
                 areButtonsDisabled = false
             }
