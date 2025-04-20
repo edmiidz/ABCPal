@@ -23,6 +23,7 @@ struct QuizView: View {
     @State private var hasPlayedPrompt = false
     @State private var areButtonsDisabled = false
     @State private var useLandscapeLayout = true
+    @State private var celebrationLetter: String? = nil
     
     // Get the user name from UserDefaults
     var userName: String {
@@ -89,13 +90,21 @@ struct QuizView: View {
                                     Button(action: {
                                         checkAnswer(options[index])
                                     }) {
-                                        Text(options[index])
-                                            .font(.largeTitle)
-                                            .fontWeight(.bold)
-                                            .foregroundColor(.blue)
-                                            .frame(width: 180, height: 70)
-                                            .background(Color.blue.opacity(0.2))
-                                            .cornerRadius(20)
+                                        HStack {
+                                            Text(options[index])
+                                                .font(.largeTitle)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.blue)
+                                            
+                                            // Show celebration emoji if this is the correct letter that was just selected
+                                            if celebrationLetter == options[index] {
+                                                Text("🎉")
+                                                    .font(.largeTitle)
+                                            }
+                                        }
+                                        .frame(width: 180, height: 70)
+                                        .background(Color.blue.opacity(0.2))
+                                        .cornerRadius(20)
                                     }
                                     .disabled(areButtonsDisabled)
                                 }
@@ -186,11 +195,19 @@ struct QuizView: View {
                         Button(action: {
                             checkAnswer(letter)
                         }) {
-                            Text(letter)
-                                .font(.largeTitle)
-                                .frame(minWidth: 150, minHeight: 60)
-                                .background(Color.blue.opacity(0.2))
-                                .cornerRadius(12)
+                            HStack {
+                                Text(letter)
+                                    .font(.largeTitle)
+                                
+                                // Show celebration emoji if this is the correct letter that was just selected
+                                if celebrationLetter == letter {
+                                    Text("🎉")
+                                        .font(.largeTitle)
+                                }
+                            }
+                            .frame(minWidth: 150, minHeight: 60)
+                            .background(Color.blue.opacity(0.2))
+                            .cornerRadius(12)
                         }
                         .disabled(areButtonsDisabled)
                     }
@@ -242,27 +259,25 @@ struct QuizView: View {
             mastery[correctLetter, default: 0] += 1
             let count = mastery[correctLetter] ?? 0
 
+            // For first time correct, just say the letter and show celebration
             if count == 1 {
-                feedback = language == "fr-CA"
-                    ? correctLetter.uppercased()
-                    : correctLetter.uppercased()
+                celebrationLetter = correctLetter
+                speak(letter: correctLetter)
             } else {
-                feedback = language == "fr-CA"
-                    ? "Bravo!"
-                    : "Good job!"
+                // For subsequent correct answers, say "Bravo!" first
+                feedback = language == "fr-CA" ? "Bravo!" : "Good job!"
+                speak(text: feedback)
+                
+                // Then say the letter after a short delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                    speak(letter: correctLetter)
+                }
             }
             
-            // Say the feedback
-            speak(text: feedback)
-            
-            // Speak the letter one more time before moving on
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                speak(letter: correctLetter)
-                
-                // After speaking the letter, start the next quiz
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    startQuizFlow()
-                }
+            // Start next quiz after appropriate delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                celebrationLetter = nil
+                startQuizFlow()
             }
         } else {
             feedback = language == "fr-CA"
