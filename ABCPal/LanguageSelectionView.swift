@@ -391,7 +391,7 @@ struct AlphaInfoRow: View {
 struct AlphaShareView: View {
     @Binding var isShowing: Bool
     @State private var showShareSheet = false
-    let appURL = "https://nikipedia.edmiidz.com/index.php?title=ABCPal"
+    let appURL = "https://apps.apple.com/us/app/abcpal/id6744830469"
     
     var body: some View {
         NavigationView {
