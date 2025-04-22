@@ -34,8 +34,8 @@ struct QuizView: View {
     
     let synthesizer = AVSpeechSynthesizer()
     var allLetters: [String] {
-        // to test congratulations, set values to let base = (65...69) and then back to let base = (65...90) when done
-        let base = (65...69).map { String(UnicodeScalar($0)!) }
+        // Use full alphabet for normal use, or limited range for testing
+        let base = (65...90).map { String(UnicodeScalar($0)!) }
         return letterCase == "lower" ? base.map { $0.lowercased() } : base
     }
     
@@ -55,82 +55,112 @@ struct QuizView: View {
                 // Landscape layout as default
                 ZStack {
                     // Main content area
-                    HStack(spacing: 20) {
-                        // Left side with prompt and speaker
-                        VStack(alignment: .leading, spacing: 30) {
-                            // Only show prompt if not completed
-                            if !isCompleted {
-                                // Prompt with speaker icon
-                                Button(action: {
-                                    synthesizer.stopSpeaking(at: .immediate)
-                                    speak(text: promptText)
-                                }) {
-                                    HStack {
-                                        Image(systemName: "speaker.wave.2.fill")
-                                        Text(promptText)
-                                            .font(.title2)
-                                    }
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                                .padding(.bottom, 20)
+                    if isCompleted {
+                        // Celebration view when completed
+                        VStack(spacing: 20) {
+                            // Display splash image
+                            Image("splashImage")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 200)
+                                .padding()
+                                .transition(.scale)
+                            
+                            // Confetti/party effects
+                            HStack {
+                                Text("🎉").font(.system(size: 40))
+                                Text("🎊").font(.system(size: 40))
+                                Text("🏆").font(.system(size: 40))
+                                Text("🎈").font(.system(size: 40))
                             }
                             
-                            // Only show speaker button if not completed
-                            if !isCompleted {
-                                // Speaker button
-                                Button(action: {
-                                    synthesizer.stopSpeaking(at: .immediate)
-                                    speak(letter: correctLetter)
-                                }) {
-                                    Image(systemName: "speaker.wave.3.fill")
-                                        .font(.system(size: 60))
-                                        .foregroundColor(.gray)
-                                }
-                                .padding(.leading, 40)
-                            }
+                            Text(feedback)
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(.primary)
+                                .padding()
+                                .animation(.spring(), value: feedbackOpacity)
                         }
-                        .frame(width: UIScreen.main.bounds.width * 0.4)
-                        .padding(.leading, 20)
-                        
-                        // Only show letter options if not completed
-                        if !isCompleted {
-                            // Right side with letter options
-                            VStack(spacing: 20) {
-                                if !options.isEmpty {
-                                    ForEach(0..<min(options.count, 4), id: \.self) { index in
-                                        Button(action: {
-                                            checkAnswer(options[index])
-                                        }) {
-                                            HStack {
-                                                Text(options[index])
-                                                    .font(.largeTitle)
-                                                    .fontWeight(.bold)
-                                                    .foregroundColor(.blue)
-                                                
-                                                // Show celebration emoji if this is the correct letter that was just selected
-                                                if celebrationLetter == options[index] {
-                                                    Text("🎉")
-                                                        .font(.largeTitle)
-                                                }
-                                                // Show thinking emoji if this is a wrong letter that was just selected
-                                                if thinkingLetter == options[index] {
-                                                    Text("🤔")
-                                                        .font(.largeTitle)
-                                                }
-                                            }
-                                            .frame(width: 180, height: 70)
-                                            .background(Color.blue.opacity(0.2))
-                                            .cornerRadius(20)
+                    } else {
+                        // Regular quiz view
+                        HStack(spacing: 20) {
+                            // Left side with prompt and speaker
+                            VStack(alignment: .leading, spacing: 30) {
+                                // Only show prompt if not completed
+                                if !isCompleted {
+                                    // Prompt with speaker icon
+                                    Button(action: {
+                                        synthesizer.stopSpeaking(at: .immediate)
+                                        speak(text: promptText)
+                                    }) {
+                                        HStack {
+                                            Image(systemName: "speaker.wave.2.fill")
+                                            Text(promptText)
+                                                .font(.title2)
                                         }
-                                        .disabled(areButtonsDisabled)
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                    .padding(.bottom, 20)
+                                }
+                                
+                                // Only show speaker button if not completed
+                                if !isCompleted {
+                                    // Speaker button
+                                    Button(action: {
+                                        synthesizer.stopSpeaking(at: .immediate)
+                                        speak(letter: correctLetter)
+                                    }) {
+                                        Image(systemName: "speaker.wave.3.fill")
+                                            .font(.system(size: 60))
+                                            .foregroundColor(.gray)
+                                    }
+                                    .padding(.leading, 40)
+                                }
+                            }
+                            .frame(width: UIScreen.main.bounds.width * 0.4)
+                            .padding(.leading, 20)
+                            
+                            // Only show letter options if not completed
+                            if !isCompleted {
+                                // Right side with letter options
+                                VStack(spacing: 20) {
+                                    if !options.isEmpty {
+                                        ForEach(0..<min(options.count, 4), id: \.self) { index in
+                                            Button(action: {
+                                                checkAnswer(options[index])
+                                            }) {
+                                                HStack {
+                                                    Text(options[index])
+                                                        .font(.largeTitle)
+                                                        .fontWeight(.bold)
+                                                        .foregroundColor(.blue)
+                                                    
+                                                    // Show celebration emoji if this is the correct letter that was just selected
+                                                    if celebrationLetter == options[index] {
+                                                        Text("🎉")
+                                                            .font(.largeTitle)
+                                                    }
+                                                    // Show thinking emoji if this is a wrong letter that was just selected
+                                                    if thinkingLetter == options[index] {
+                                                        Text("🤔")
+                                                            .font(.largeTitle)
+                                                    }
+                                                }
+                                                .frame(width: 180, height: 70)
+                                                .background(Color.blue.opacity(0.2))
+                                                .cornerRadius(20)
+                                            }
+                                            .disabled(areButtonsDisabled)
+                                        }
                                     }
                                 }
+                                .padding(.trailing, 20)
                             }
-                            .padding(.trailing, 20)
                         }
                     }
                     
-                    // Back button at top left
+                    // Back button at top left - always visible
                     VStack {
                         HStack {
                             Button(action: {
@@ -153,102 +183,157 @@ struct QuizView: View {
                         Spacer()
                     }
                     
-                    // Feedback at the bottom
-                    VStack {
-                        Spacer()
-                        Text(feedback)
-                            .font(.title3)
-                            .foregroundColor(.gray)
-                            .padding()
-                            .opacity(feedbackOpacity)
-                            .animation(.easeInOut(duration: 0.5), value: feedbackOpacity)
+                    // Feedback at the bottom (if not completed)
+                    if !isCompleted {
+                        VStack {
+                            Spacer()
+                            Text(feedback)
+                                .font(.title3)
+                                .foregroundColor(.gray)
+                                .padding()
+                                .opacity(feedbackOpacity)
+                                .animation(.easeInOut(duration: 0.5), value: feedbackOpacity)
+                        }
                     }
                 }
             } else {
                 // Portrait layout - only used when definitively in portrait
-                VStack(spacing: 30) {
-                    HStack {
-                        Button(action: {
-                            synthesizer.stopSpeaking(at: .immediate)
-                            goBack()
-                        }) {
+                ZStack {
+                    if isCompleted {
+                        // Celebration view for portrait mode
+                        VStack(spacing: 20) {
+                            // Back button
                             HStack {
-                                Image(systemName: "arrow.backward")
-                                Text(language == "fr-CA" ? "Retour" : "Back")
-                            }
-                            .padding(8)
-                            .foregroundColor(.blue)
-                            .background(Color.gray.opacity(0.2))
-                            .cornerRadius(8)
-                        }
-
-                        Spacer()
-                    }
-                    .padding(.top)
-                    
-                    // Only show prompt if not completed
-                    if !isCompleted {
-                        Button(action: {
-                            synthesizer.stopSpeaking(at: .immediate)
-                            speak(text: promptText)
-                        }) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "speaker.wave.2.fill")
-                                Text(promptText)
-                                    .font(.title2)
-                            }
-                            .foregroundColor(.primary)
-                            .padding(.bottom, 4)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
-                    
-                    // Only show speaker button if not completed
-                    if !isCompleted {
-                        Button(action: {
-                            synthesizer.stopSpeaking(at: .immediate)
-                            speak(letter: correctLetter)
-                        }) {
-                            Text("🔊")
-                                .font(.system(size: 60))
-                        }
-                        
-                        // Only show options if not completed
-                        ForEach(options, id: \.self) { letter in
-                            Button(action: {
-                                checkAnswer(letter)
-                            }) {
-                                HStack {
-                                    Text(letter)
-                                        .font(.largeTitle)
-                                    
-                                    // Show celebration emoji if this is the correct letter that was just selected
-                                    if celebrationLetter == letter {
-                                        Text("🎉")
-                                            .font(.largeTitle)
+                                Button(action: {
+                                    synthesizer.stopSpeaking(at: .immediate)
+                                    goBack()
+                                }) {
+                                    HStack {
+                                        Image(systemName: "arrow.backward")
+                                        Text(language == "fr-CA" ? "Retour" : "Back")
                                     }
-                                    // Show thinking emoji if this is a wrong letter that was just selected
-                                    if thinkingLetter == letter {
-                                        Text("🤔")
-                                            .font(.largeTitle)
-                                    }
+                                    .padding(8)
+                                    .foregroundColor(.blue)
+                                    .background(Color.gray.opacity(0.2))
+                                    .cornerRadius(8)
                                 }
-                                .frame(minWidth: 150, minHeight: 60)
-                                .background(Color.blue.opacity(0.2))
-                                .cornerRadius(12)
+                                Spacer()
                             }
-                            .disabled(areButtonsDisabled)
+                            .padding(.top)
+                            
+                            Spacer()
+                            
+                            // Display splash image
+                            Image("splashImage")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 200)
+                                .padding()
+                            
+                            // Confetti/party effects
+                            HStack {
+                                Text("🎉").font(.system(size: 40))
+                                Text("🎊").font(.system(size: 40))
+                                Text("🏆").font(.system(size: 40))
+                                Text("🎈").font(.system(size: 40))
+                            }
+                            
+                            Text(feedback)
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .multilineTextAlignment(.center)
+                                .padding()
+                            
+                            Spacer()
                         }
-                    }
-                    
-                    Text(feedback)
-                        .font(.title3)
-                        .foregroundColor(.gray)
                         .padding()
-                        .opacity(feedbackOpacity)
-                        .animation(.easeInOut(duration: 0.5), value: feedbackOpacity)
+                    } else {
+                        // Regular quiz layout for portrait
+                        VStack(spacing: 30) {
+                            HStack {
+                                Button(action: {
+                                    synthesizer.stopSpeaking(at: .immediate)
+                                    goBack()
+                                }) {
+                                    HStack {
+                                        Image(systemName: "arrow.backward")
+                                        Text(language == "fr-CA" ? "Retour" : "Back")
+                                    }
+                                    .padding(8)
+                                    .foregroundColor(.blue)
+                                    .background(Color.gray.opacity(0.2))
+                                    .cornerRadius(8)
+                                }
+
+                                Spacer()
+                            }
+                            .padding(.top)
+                            
+                            // Only show prompt if not completed
+                            if !isCompleted {
+                                Button(action: {
+                                    synthesizer.stopSpeaking(at: .immediate)
+                                    speak(text: promptText)
+                                }) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "speaker.wave.2.fill")
+                                        Text(promptText)
+                                            .font(.title2)
+                                    }
+                                    .foregroundColor(.primary)
+                                    .padding(.bottom, 4)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                            
+                            // Only show speaker button if not completed
+                            if !isCompleted {
+                                Button(action: {
+                                    synthesizer.stopSpeaking(at: .immediate)
+                                    speak(letter: correctLetter)
+                                }) {
+                                    Text("🔊")
+                                        .font(.system(size: 60))
+                                }
+                                
+                                // Only show options if not completed
+                                ForEach(options, id: \.self) { letter in
+                                    Button(action: {
+                                        checkAnswer(letter)
+                                    }) {
+                                        HStack {
+                                            Text(letter)
+                                                .font(.largeTitle)
+                                            
+                                            // Show celebration emoji if this is the correct letter that was just selected
+                                            if celebrationLetter == letter {
+                                                Text("🎉")
+                                                    .font(.largeTitle)
+                                            }
+                                            // Show thinking emoji if this is a wrong letter that was just selected
+                                            if thinkingLetter == letter {
+                                                Text("🤔")
+                                                    .font(.largeTitle)
+                                            }
+                                        }
+                                        .frame(minWidth: 150, minHeight: 60)
+                                        .background(Color.blue.opacity(0.2))
+                                        .cornerRadius(12)
+                                    }
+                                    .disabled(areButtonsDisabled)
+                                }
+                            }
+                            
+                            Text(feedback)
+                                .font(.title3)
+                                .foregroundColor(.gray)
+                                .padding()
+                                .opacity(feedbackOpacity)
+                                .animation(.easeInOut(duration: 0.5), value: feedbackOpacity)
+                        }
+                        .padding()
+                    }
                 }
-                .padding()
             }
         }
         .onAppear {
@@ -368,6 +453,11 @@ struct QuizView: View {
             withAnimation(.spring()) {
                 feedbackOpacity = 1.0
                 celebrationLetter = "🎉"
+            }
+            
+            // Automatically navigate back after a delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                goBack()
             }
             
             return
