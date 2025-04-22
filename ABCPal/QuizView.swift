@@ -25,6 +25,7 @@ struct QuizView: View {
     @State private var useLandscapeLayout = true
     @State private var celebrationLetter: String? = nil
     @State private var thinkingLetter: String? = nil
+    @State private var isCompleted = false
     
     // Get the user name from UserDefaults
     var userName: String {
@@ -33,7 +34,8 @@ struct QuizView: View {
     
     let synthesizer = AVSpeechSynthesizer()
     var allLetters: [String] {
-        let base = (65...90).map { String(UnicodeScalar($0)!) }
+        // to test congratulations, set values to let base = (65...69) and then back to let base = (65...90) when done
+        let base = (65...69).map { String(UnicodeScalar($0)!) }
         return letterCase == "lower" ? base.map { $0.lowercased() } : base
     }
     
@@ -70,53 +72,58 @@ struct QuizView: View {
                             .buttonStyle(PlainButtonStyle())
                             .padding(.bottom, 20)
                             
-                            // Speaker button
-                            Button(action: {
-                                synthesizer.stopSpeaking(at: .immediate)
-                                speak(letter: correctLetter)
-                            }) {
-                                Image(systemName: "speaker.wave.3.fill")
-                                    .font(.system(size: 60))
-                                    .foregroundColor(.gray)
+                            
+                            if !isCompleted {
+                                // Speaker button
+                                Button(action: {
+                                    synthesizer.stopSpeaking(at: .immediate)
+                                    speak(letter: correctLetter)
+                                }) {
+                                    Image(systemName: "speaker.wave.3.fill")
+                                        .font(.system(size: 60))
+                                        .foregroundColor(.gray)
+                                }
+                                .padding(.leading, 40)
                             }
-                            .padding(.leading, 40)
                         }
                         .frame(width: UIScreen.main.bounds.width * 0.4)
                         .padding(.leading, 20)
                         
                         // Right side with letter options
-                        VStack(spacing: 20) {
-                            if !options.isEmpty {
-                                ForEach(0..<min(options.count, 4), id: \.self) { index in
-                                    Button(action: {
-                                        checkAnswer(options[index])
-                                    }) {
-                                        HStack {
-                                            Text(options[index])
-                                                .font(.largeTitle)
-                                                .fontWeight(.bold)
-                                                .foregroundColor(.blue)
-                                            
-                                            // Show celebration emoji if this is the correct letter that was just selected
-                                            if celebrationLetter == options[index] {
-                                                Text("🎉")
+                        if !isCompleted {
+                                VStack(spacing: 20) {
+                                if !options.isEmpty {
+                                    ForEach(0..<min(options.count, 4), id: \.self) { index in
+                                        Button(action: {
+                                            checkAnswer(options[index])
+                                        }) {
+                                            HStack {
+                                                Text(options[index])
                                                     .font(.largeTitle)
+                                                    .fontWeight(.bold)
+                                                    .foregroundColor(.blue)
+                                                
+                                                // Show celebration emoji if this is the correct letter that was just selected
+                                                if celebrationLetter == options[index] {
+                                                    Text("🎉")
+                                                        .font(.largeTitle)
+                                                }
+                                                // Show thinking emoji if this is a wrong letter that was just selected
+                                                if thinkingLetter == options[index] {
+                                                    Text("🤔")
+                                                        .font(.largeTitle)
+                                                }
                                             }
-                                            // Show thinking emoji if this is a wrong letter that was just selected
-                                            if thinkingLetter == options[index] {
-                                                Text("🤔")
-                                                    .font(.largeTitle)
-                                            }
+                                            .frame(width: 180, height: 70)
+                                            .background(Color.blue.opacity(0.2))
+                                            .cornerRadius(20)
                                         }
-                                        .frame(width: 180, height: 70)
-                                        .background(Color.blue.opacity(0.2))
-                                        .cornerRadius(20)
+                                        .disabled(areButtonsDisabled)
                                     }
-                                    .disabled(areButtonsDisabled)
                                 }
                             }
+                            .padding(.trailing, 20)
                         }
-                        .padding(.trailing, 20)
                     }
                     
                     // Back button at top left
@@ -331,14 +338,30 @@ struct QuizView: View {
     func startQuizFlow() {
         guard !activeLetters.isEmpty else {
             feedback = language == "fr-CA"
-                ? "\(userName), ouah ! Tu as maîtrisé toutes les lettres !"
-                : "\(userName), wow! You've mastered all the letters!"
+                ? "Bravo \(userName)! Tu as maîtrisé toutes les lettres! 🎉🎉"
+                : "Good job \(userName)! You've mastered all the letters! 🎉🎉"
 
             correctLetter = ""
             options = []
+            
+            // Play celebration sounds and animations
+            playWhooshSound()
+            
+            // Speak the congratulatory message
             speak(text: feedback)
+            
+            // Show confetti animation or additional visual celebration
+            withAnimation(.spring()) {
+                feedbackOpacity = 1.0
+                celebrationLetter = "🎉"
+            }
+            
             return
         }
+        
+        
+        isCompleted = false
+        
 
         isReady = false
 
