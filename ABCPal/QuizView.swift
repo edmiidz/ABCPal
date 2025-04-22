@@ -58,21 +58,24 @@ struct QuizView: View {
                     HStack(spacing: 20) {
                         // Left side with prompt and speaker
                         VStack(alignment: .leading, spacing: 30) {
-                            // Prompt with speaker icon
-                            Button(action: {
-                                synthesizer.stopSpeaking(at: .immediate)
-                                speak(text: promptText)
-                            }) {
-                                HStack {
-                                    Image(systemName: "speaker.wave.2.fill")
-                                    Text(promptText)
-                                        .font(.title2)
+                            // Only show prompt if not completed
+                            if !isCompleted {
+                                // Prompt with speaker icon
+                                Button(action: {
+                                    synthesizer.stopSpeaking(at: .immediate)
+                                    speak(text: promptText)
+                                }) {
+                                    HStack {
+                                        Image(systemName: "speaker.wave.2.fill")
+                                        Text(promptText)
+                                            .font(.title2)
+                                    }
                                 }
+                                .buttonStyle(PlainButtonStyle())
+                                .padding(.bottom, 20)
                             }
-                            .buttonStyle(PlainButtonStyle())
-                            .padding(.bottom, 20)
                             
-                            
+                            // Only show speaker button if not completed
                             if !isCompleted {
                                 // Speaker button
                                 Button(action: {
@@ -89,9 +92,10 @@ struct QuizView: View {
                         .frame(width: UIScreen.main.bounds.width * 0.4)
                         .padding(.leading, 20)
                         
-                        // Right side with letter options
+                        // Only show letter options if not completed
                         if !isCompleted {
-                                VStack(spacing: 20) {
+                            // Right side with letter options
+                            VStack(spacing: 20) {
                                 if !options.isEmpty {
                                     ForEach(0..<min(options.count, 4), id: \.self) { index in
                                         Button(action: {
@@ -182,52 +186,59 @@ struct QuizView: View {
                     }
                     .padding(.top)
                     
-                    Button(action: {
-                        synthesizer.stopSpeaking(at: .immediate)
-                        speak(text: promptText)
-                    }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "speaker.wave.2.fill")
-                            Text(promptText)
-                                .font(.title2)
-                        }
-                        .foregroundColor(.primary)
-                        .padding(.bottom, 4)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    
-                    Button(action: {
-                        synthesizer.stopSpeaking(at: .immediate)
-                        speak(letter: correctLetter)
-                    }) {
-                        Text("🔊")
-                            .font(.system(size: 60))
-                    }
-                    
-                    ForEach(options, id: \.self) { letter in
+                    // Only show prompt if not completed
+                    if !isCompleted {
                         Button(action: {
-                            checkAnswer(letter)
+                            synthesizer.stopSpeaking(at: .immediate)
+                            speak(text: promptText)
                         }) {
-                            HStack {
-                                Text(letter)
-                                    .font(.largeTitle)
-                                
-                                // Show celebration emoji if this is the correct letter that was just selected
-                                if celebrationLetter == letter {
-                                    Text("🎉")
-                                        .font(.largeTitle)
-                                }
-                                // Show thinking emoji if this is a wrong letter that was just selected
-                                if thinkingLetter == letter {
-                                    Text("🤔")
-                                        .font(.largeTitle)
-                                }
+                            HStack(spacing: 8) {
+                                Image(systemName: "speaker.wave.2.fill")
+                                Text(promptText)
+                                    .font(.title2)
                             }
-                            .frame(minWidth: 150, minHeight: 60)
-                            .background(Color.blue.opacity(0.2))
-                            .cornerRadius(12)
+                            .foregroundColor(.primary)
+                            .padding(.bottom, 4)
                         }
-                        .disabled(areButtonsDisabled)
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    
+                    // Only show speaker button if not completed
+                    if !isCompleted {
+                        Button(action: {
+                            synthesizer.stopSpeaking(at: .immediate)
+                            speak(letter: correctLetter)
+                        }) {
+                            Text("🔊")
+                                .font(.system(size: 60))
+                        }
+                        
+                        // Only show options if not completed
+                        ForEach(options, id: \.self) { letter in
+                            Button(action: {
+                                checkAnswer(letter)
+                            }) {
+                                HStack {
+                                    Text(letter)
+                                        .font(.largeTitle)
+                                    
+                                    // Show celebration emoji if this is the correct letter that was just selected
+                                    if celebrationLetter == letter {
+                                        Text("🎉")
+                                            .font(.largeTitle)
+                                    }
+                                    // Show thinking emoji if this is a wrong letter that was just selected
+                                    if thinkingLetter == letter {
+                                        Text("🤔")
+                                            .font(.largeTitle)
+                                    }
+                                }
+                                .frame(minWidth: 150, minHeight: 60)
+                                .background(Color.blue.opacity(0.2))
+                                .cornerRadius(12)
+                            }
+                            .disabled(areButtonsDisabled)
+                        }
                     }
                     
                     Text(feedback)
@@ -337,6 +348,9 @@ struct QuizView: View {
 
     func startQuizFlow() {
         guard !activeLetters.isEmpty else {
+            // Set completed state to true - this is critical!
+            isCompleted = true
+            
             feedback = language == "fr-CA"
                 ? "Bravo \(userName)! Tu as maîtrisé toutes les lettres! 🎉🎉"
                 : "Good job \(userName)! You've mastered all the letters! 🎉🎉"
@@ -359,9 +373,8 @@ struct QuizView: View {
             return
         }
         
-        
+        // Make sure isCompleted is false for normal quiz flow
         isCompleted = false
-        
 
         isReady = false
 
