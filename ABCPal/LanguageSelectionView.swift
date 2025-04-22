@@ -405,22 +405,24 @@ struct AlphaShareView: View {
                     .frame(width: 200, height: 200)
                     .padding()
                 
-                Text(appURL)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+//                Text(appURL)
+//                    .font(.caption)
+//                    .foregroundColor(.secondary)                Text(appURL)
+//                    .font(.caption)
+//                    .foregroundColor(.secondary)
                 
-                Button(action: {
-                    showShareSheet = true
-                }) {
-                    HStack {
-                        Image(systemName: "square.and.arrow.up")
-                        Text("Share Link")
-                    }
-                    .padding()
-                    .foregroundColor(.white)
-                    .background(Color.blue)
-                    .cornerRadius(10)
-                }
+//                Button(action: {
+//                    showShareSheet = true
+//                }) {
+//                    HStack {
+//                        Image(systemName: "square.and.arrow.up")
+//                        Text("Share Link")
+//                    }
+//                    .padding()
+//                    .foregroundColor(.white)
+//                    .background(Color.blue)
+//                    .cornerRadius(10)
+//                }
                 .padding(.top)
                 
                 Spacer()
