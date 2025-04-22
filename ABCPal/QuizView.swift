@@ -34,7 +34,7 @@ struct QuizView: View {
     
     let synthesizer = AVSpeechSynthesizer()
     var allLetters: [String] {
-        // Use full alphabet for normal use, or limited range for testing
+        // to test congratulations, set values to let base = (65...69) and then back to let base = (65...90) when done
         let base = (65...90).map { String(UnicodeScalar($0)!) }
         return letterCase == "lower" ? base.map { $0.lowercased() } : base
     }
@@ -446,8 +446,9 @@ struct QuizView: View {
             // Play celebration sounds and animations
             playWhooshSound()
             
-            // Speak the congratulatory message
-            speak(text: feedback)
+            // Speak the congratulatory message - strip emojis for TTS
+            let cleanFeedback = feedback.replacingOccurrences(of: "[\\p{Emoji}]", with: "", options: .regularExpression)
+            speak(text: cleanFeedback)
             
             // Show confetti animation or additional visual celebration
             withAnimation(.spring()) {
@@ -455,8 +456,8 @@ struct QuizView: View {
                 celebrationLetter = "🎉"
             }
             
-            // Automatically navigate back after a delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+            // Automatically navigate back after a longer delay (8 seconds instead of 5)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 8.0) {
                 goBack()
             }
             
