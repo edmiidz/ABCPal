@@ -2,6 +2,12 @@
 
 ABCPal is an open-source iOS application designed to help children learn the alphabet in both English and French through interactive and engaging exercises.
 
+📱 **Now available on the App Store:**  
+[Download ABCPal for iOS](https://apps.apple.com/app/id6744830469)
+
+🌐 **Learn more on Nikipedia:**  
+[ABCPal on Nikipedia](https://nikipedia.edmiidz.com/index.php?title=ABCPal)
+
 ## About
 
 This app was developed using SwiftUI and vibe coded with Claude.ai and ChatGPT. It combines a simple, child-friendly interface with effective learning techniques to make alphabet learning fun.
@@ -17,7 +23,7 @@ This app was developed using SwiftUI and vibe coded with Claude.ai and ChatGPT. 
 ## Technical Details
 
 ### Text-to-Speech Implementation
-The app leverages iOS's native AVSpeechSynthesizer to provide clear pronunciation guidance for young learners. Language-specific voices are used for both English and French content.
+The app leverages iOS's native `AVSpeechSynthesizer` to provide clear pronunciation guidance for young learners. Language-specific voices are used for both English and French content.
 
 ### Emoji and Graphics
 Instead of complex custom graphics, the app utilizes emoji and simple UI elements to maintain a lightweight footprint while remaining visually engaging for children.
@@ -37,7 +43,8 @@ Ways to contribute:
 
 ## Installation
 
-The app is available on the App Store for $1, but as an open-source project, you're welcome to clone, build, and modify it for personal use.
+The app is available on the App Store for $0.99, but as an open-source project, you're welcome to clone, build, and modify it for personal use.
+
 
 ```
 git clone https://github.com/edmiidz/ABCPal.git
