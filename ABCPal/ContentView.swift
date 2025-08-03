@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var showSplash = true
     @State private var selectedLanguage: String? = nil
     @State private var selectedCase: String? = nil
+    @State private var selectedLearningType: String? = nil
     @State private var userName: String = ""
     @State private var showNameInput = false
     
@@ -38,13 +39,28 @@ struct ContentView: View {
                 UserDefaults.standard.set(userName, forKey: userNameKey)
                 showNameInput = false
             })
-        } else if let lang = selectedLanguage, let casing = selectedCase {
+        } else if let lang = selectedLanguage, selectedLearningType == "vocab" {
+            VocabQuizView(language: lang, goBack: {
+                selectedLearningType = nil
+            })
+        } else if let lang = selectedLanguage, let casing = selectedCase, selectedLearningType?.starts(with: "abc") == true {
             QuizView(language: lang, letterCase: casing, goBack: {
                 selectedCase = nil
             })
-        } else if let lang = selectedLanguage {
+        } else if let lang = selectedLanguage, selectedLearningType?.starts(with: "abc") == true {
             LetterCaseSelectionView(language: lang, onCaseSelected: { casing in
                 selectedCase = casing
+            }, onBack: {
+                selectedLearningType = nil
+            })
+        } else if let lang = selectedLanguage {
+            LearningTypeSelectionView(language: lang, onTypeSelected: { type in
+                selectedLearningType = type
+                if type == "abc_upper" {
+                    selectedCase = "upper"
+                } else if type == "abc_lower" {
+                    selectedCase = "lower"
+                }
             }, onBack: {
                 selectedLanguage = nil
             })

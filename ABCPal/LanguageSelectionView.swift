@@ -22,11 +22,11 @@ struct LanguageSelectionView: View {
     let synthesizer = AVSpeechSynthesizer()
 
     var englishPrompt: String {
-        "\(userName), Which language do you want to learn your ABCs in today?"
+        "\(userName), Which language do you want to learn today?"
     }
     
     var frenchPrompt: String {
-        "\(userName), Dans quelle langue veux-tu apprendre ton alphabet aujourd'hui?"
+        "\(userName), Dans quelle langue veux-tu apprendre aujourd'hui?"
     }
 
     var body: some View {
