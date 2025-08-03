@@ -36,6 +36,7 @@ When releasing updates to the App Store, you MUST increment the version numbers:
 2. **Version History:**
    - 1.0 - Initial release with ABC learning
    - 1.1 - Added vocabulary learning feature
+   - 1.2 - Fixed mastery algorithm, added persistent vocabulary progress, custom word import
 
 3. **Common Version Update Errors:**
    - "The train version 'X.X' is closed for new build submissions"
@@ -67,17 +68,28 @@ When releasing updates to the App Store, you MUST increment the version numbers:
    - Add release notes
    - Submit for review
 
-## Vocabulary Files
+## Vocabulary Management
 
 ### File Locations
 - **English:** `english_vocab.txt` (73 words)
 - **French:** `french_vocab.txt` (105 words)
 
 ### Adding New Words
-- One word per line
+- One word per line in .txt files
 - Keep words age-appropriate (3-6 years)
 - Test pronunciation with text-to-speech
-- Maintain alphabetical order for easier management
+- Words can also be added via the app's vocabulary management UI
+
+### Vocabulary Features (v1.2+)
+- **Persistent Progress**: Mastery data saved between sessions
+- **Custom Word Import**: Add words from pasted text (e.g., from BookReaderOCR)
+- **Vocabulary Management UI**: Access from menu to:
+  - View progress (words to learn vs mastered)
+  - Add custom words manually
+  - Import vocabulary from text
+  - Reset progress
+- **Smart Filtering**: Mastered words automatically hidden from quiz
+- **Word Extraction**: When importing text, automatically extracts words >2 characters
 
 ## Testing Commands
 
@@ -97,9 +109,11 @@ swiftc -typecheck -sdk $(xcrun --sdk iphoneos --show-sdk-path) -target arm64-app
 - Each letter/word must be correctly identified twice ON FIRST ATTEMPT
 - If user selects wrong answer first, mastery count is NOT incremented when they eventually get it right
 - Only first-attempt correct answers count toward mastery
-- Progress tracked in memory (not persisted)
+- ABC progress tracked in memory only
+- Vocabulary progress persisted using UserDefaults
 - "Good job!" feedback only shown on second mastery (not on corrections)
 - Celebration screen when all items mastered
+- Mastered vocabulary words are automatically hidden from future sessions
 
 ### Audio Features
 - Text-to-speech for all prompts and feedback

@@ -15,7 +15,6 @@ struct VocabQuizView: View {
     @State private var correctWord = ""
     @State private var options: [String] = []
     @State private var feedback = ""
-    @State private var mastery: [String: Int] = [:]
     @State private var lastWord: String? = nil
     @State private var isReady = false
     @State private var feedbackOpacity = 1.0
@@ -28,6 +27,8 @@ struct VocabQuizView: View {
     @State private var allWords: [String] = []
     @State private var isFirstAttempt = true
     
+    @StateObject private var vocabManager = VocabularyManager.shared
+    
     var userName: String {
         UserDefaults.standard.string(forKey: "userNameKey") ?? "Student"
     }
@@ -35,7 +36,7 @@ struct VocabQuizView: View {
     let synthesizer = AVSpeechSynthesizer()
     
     var activeWords: [String] {
-        allWords.filter { (mastery[$0] ?? 0) < 2 }
+        vocabManager.getActiveWords(for: language)
     }
     
     var promptText: String {
@@ -321,35 +322,7 @@ struct VocabQuizView: View {
     }
     
     func loadWords() {
-        if language == "en-US" {
-            if let path = Bundle.main.path(forResource: "english_vocab", ofType: "txt"),
-               let content = try? String(contentsOfFile: path) {
-                allWords = content.components(separatedBy: .newlines).filter { !$0.isEmpty }
-            } else {
-                // If bundle resource fails, try direct file path
-                let filePath = "/Users/edmiidz/Projects/GitHub/ABCPal/ABCPal/english_vocab.txt"
-                if let content = try? String(contentsOfFile: filePath) {
-                    allWords = content.components(separatedBy: .newlines).filter { !$0.isEmpty }
-                }
-            }
-        } else if language == "fr-CA" {
-            if let path = Bundle.main.path(forResource: "french_vocab", ofType: "txt"),
-               let content = try? String(contentsOfFile: path) {
-                allWords = content.components(separatedBy: .newlines).filter { !$0.isEmpty }
-            } else {
-                // If bundle resource fails, try direct file path
-                let filePath = "/Users/edmiidz/Projects/GitHub/ABCPal/ABCPal/french_vocab.txt"
-                if let content = try? String(contentsOfFile: filePath) {
-                    allWords = content.components(separatedBy: .newlines).filter { !$0.isEmpty }
-                }
-            }
-        }
-        
-        // If still no words, use a fallback list
-        if allWords.isEmpty {
-            allWords = ["cat", "dog", "house", "tree", "book", "car", "sun", "moon", 
-                       "star", "water", "fire", "earth", "flower", "bird", "fish"]
-        }
+        allWords = language == "en-US" ? vocabManager.englishWords : vocabManager.frenchWords
     }
     
     func updateLayoutForCurrentOrientation() {
@@ -367,8 +340,9 @@ struct VocabQuizView: View {
         if selected == correctWord {
             // Only increment mastery if this is the first attempt
             if isFirstAttempt {
-                mastery[correctWord, default: 0] += 1
-                let count = mastery[correctWord] ?? 0
+                let currentMastery = vocabManager.getMastery(for: correctWord, language: language)
+                vocabManager.updateMastery(word: correctWord, language: language, count: currentMastery + 1)
+                let count = currentMastery + 1
 
                 if count == 1 {
                     celebrationWord = correctWord

@@ -18,6 +18,8 @@ struct LanguageSelectionView: View {
     @State private var showingAbout = false
     @State private var showingShare = false
     @State private var showingNameChange = false
+    @State private var showingVocabManagement = false
+    @State private var vocabManagementLanguage = "en-US"
     
     let synthesizer = AVSpeechSynthesizer()
 
@@ -159,7 +161,9 @@ struct LanguageSelectionView: View {
                 showingMenu: $showingMenu,
                 showingAbout: $showingAbout,
                 showingShare: $showingShare,
-                showingNameChange: $showingNameChange
+                showingNameChange: $showingNameChange,
+                showingVocabManagement: $showingVocabManagement,
+                vocabManagementLanguage: $vocabManagementLanguage
             )
             .presentationDetents([.medium])
         }
@@ -171,6 +175,9 @@ struct LanguageSelectionView: View {
         }
         .sheet(isPresented: $showingNameChange) {
             ChangeUsernameView(isShowing: $showingNameChange)
+        }
+        .sheet(isPresented: $showingVocabManagement) {
+            VocabularyManagementView(isShowing: $showingVocabManagement, language: vocabManagementLanguage)
         }
     }
     
@@ -204,6 +211,8 @@ struct MenuModalView: View {
     @Binding var showingAbout: Bool
     @Binding var showingShare: Bool
     @Binding var showingNameChange: Bool
+    @Binding var showingVocabManagement: Bool
+    @Binding var vocabManagementLanguage: String
     
     var body: some View {
         NavigationView {
@@ -235,6 +244,30 @@ struct MenuModalView: View {
                     HStack {
                         Image(systemName: "person.badge.plus")
                         Text("Change Username")
+                    }
+                }
+                
+                Section(header: Text("Vocabulary")) {
+                    Button(action: {
+                        vocabManagementLanguage = "en-US"
+                        showingMenu = false
+                        showingVocabManagement = true
+                    }) {
+                        HStack {
+                            Image(systemName: "book.closed")
+                            Text("Manage English Vocabulary")
+                        }
+                    }
+                    
+                    Button(action: {
+                        vocabManagementLanguage = "fr-CA"
+                        showingMenu = false
+                        showingVocabManagement = true
+                    }) {
+                        HStack {
+                            Image(systemName: "book.closed")
+                            Text("Manage French Vocabulary")
+                        }
                     }
                 }
             }
