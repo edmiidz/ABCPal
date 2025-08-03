@@ -15,6 +15,7 @@ struct LearningTypeSelectionView: View {
     
     @State private var hasSpoken = false
     let synthesizer = AVSpeechSynthesizer()
+    @StateObject private var vocabManager = VocabularyManager.shared
     
     var userName: String {
         UserDefaults.standard.string(forKey: "userNameKey") ?? "Student"
@@ -36,6 +37,15 @@ struct LearningTypeSelectionView: View {
     
     var vocabText: String {
         language == "fr-CA" ? "Vocabulaire" : "Vocabulary"
+    }
+    
+    var readBookText: String {
+        language == "fr-CA" ? "Lire un livre" : "Read a Book"
+    }
+    
+    var hasVocabulary: Bool {
+        let words = language == "en-US" ? vocabManager.englishWords : vocabManager.frenchWords
+        return !words.isEmpty
     }
 
     var body: some View {
@@ -103,23 +113,52 @@ struct LearningTypeSelectionView: View {
                 }
             }
 
-            // Vocabulary option
+            // Vocabulary option - only show if vocabulary exists
+            if hasVocabulary {
+                HStack(spacing: 12) {
+                    Button(action: {
+                        synthesizer.stopSpeaking(at: .immediate)
+                        onTypeSelected("vocab")
+                    }) {
+                        Text(vocabText)
+                            .font(.title2)
+                            .padding()
+                            .frame(minWidth: 200)
+                            .background(Color.purple.opacity(0.3))
+                            .cornerRadius(12)
+                    }
+
+                    Button(action: {
+                        synthesizer.stopSpeaking(at: .immediate)
+                        speak(text: vocabText)
+                    }) {
+                        Image(systemName: "speaker.wave.2.fill")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                    }
+                }
+            }
+            
+            // Read a Book option
             HStack(spacing: 12) {
                 Button(action: {
                     synthesizer.stopSpeaking(at: .immediate)
-                    onTypeSelected("vocab")
+                    onTypeSelected("read_book")
                 }) {
-                    Text(vocabText)
-                        .font(.title2)
-                        .padding()
-                        .frame(minWidth: 200)
-                        .background(Color.purple.opacity(0.3))
-                        .cornerRadius(12)
+                    HStack {
+                        Image(systemName: "book.fill")
+                        Text(readBookText)
+                    }
+                    .font(.title2)
+                    .padding()
+                    .frame(minWidth: 200)
+                    .background(Color.orange.opacity(0.3))
+                    .cornerRadius(12)
                 }
 
                 Button(action: {
                     synthesizer.stopSpeaking(at: .immediate)
-                    speak(text: vocabText)
+                    speak(text: readBookText)
                 }) {
                     Image(systemName: "speaker.wave.2.fill")
                         .font(.title2)

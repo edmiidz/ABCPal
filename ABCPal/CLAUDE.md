@@ -36,12 +36,17 @@ When releasing updates to the App Store, you MUST increment the version numbers:
 2. **Version History:**
    - 1.0 - Initial release with ABC learning
    - 1.1 - Added vocabulary learning feature
-   - 1.2 - Fixed mastery algorithm, added persistent vocabulary progress, custom word import
+   - 1.2 - Fixed mastery algorithm, persistent vocabulary, book reading with OCR
 
 3. **Common Version Update Errors:**
    - "The train version 'X.X' is closed for new build submissions"
    - "CFBundleShortVersionString must contain a higher version"
    - Solution: Always increment version number before archiving
+
+4. **Camera Permission (v1.2+):**
+   - In Xcode project settings, add to Info.plist:
+   - Key: `NSCameraUsageDescription`
+   - Value: "ABCPal needs camera access to scan book pages for reading practice."
 
 ## App Store Submission Process
 
@@ -82,13 +87,19 @@ When releasing updates to the App Store, you MUST increment the version numbers:
 
 ### Vocabulary Features (v1.2+)
 - **Persistent Progress**: Mastery data saved between sessions
-- **Custom Word Import**: Add words from pasted text (e.g., from BookReaderOCR)
+- **Book Reading Mode**: Integrated OCR functionality for scanning book pages
+  - Camera capture with crop tool
+  - Text recognition and text-to-speech
+  - Vocabulary capture from scanned text
 - **Vocabulary Management UI**: Access from menu to:
   - View progress (words to learn vs mastered)
   - Add custom words manually
   - Import vocabulary from text
-  - Reset progress
+  - Delete individual words
+  - Delete all custom words (keeps defaults)
+  - Reset progress only
 - **Smart Filtering**: Mastered words automatically hidden from quiz
+- **Conditional Display**: Vocabulary button only shows if words exist
 - **Word Extraction**: When importing text, automatically extracts words >2 characters
 
 ## Testing Commands

@@ -190,4 +190,52 @@ class VocabularyManager: ObservableObject {
         // Return words that have been mastered
         return allWords.filter { (mastery[$0] ?? 0) >= 2 }
     }
+    
+    func deleteWord(_ word: String, language: String) {
+        if language == "en-US" {
+            englishWords.removeAll { $0 == word }
+            englishMastery.removeValue(forKey: word)
+            
+            // Remove from custom words if it exists there
+            var customWords = UserDefaults.standard.stringArray(forKey: customEnglishWordsKey) ?? []
+            customWords.removeAll { $0 == word }
+            UserDefaults.standard.set(customWords, forKey: customEnglishWordsKey)
+            
+            saveMastery(for: language)
+        } else if language == "fr-CA" {
+            frenchWords.removeAll { $0 == word }
+            frenchMastery.removeValue(forKey: word)
+            
+            // Remove from custom words if it exists there
+            var customWords = UserDefaults.standard.stringArray(forKey: customFrenchWordsKey) ?? []
+            customWords.removeAll { $0 == word }
+            UserDefaults.standard.set(customWords, forKey: customFrenchWordsKey)
+            
+            saveMastery(for: language)
+        }
+    }
+    
+    func deleteAllWords(for language: String) {
+        if language == "en-US" {
+            // Keep only the default words from the file
+            loadVocabulary()
+            
+            // Clear all custom words
+            UserDefaults.standard.removeObject(forKey: customEnglishWordsKey)
+            
+            // Clear all mastery
+            englishMastery = [:]
+            UserDefaults.standard.removeObject(forKey: englishMasteryKey)
+        } else if language == "fr-CA" {
+            // Keep only the default words from the file
+            loadVocabulary()
+            
+            // Clear all custom words
+            UserDefaults.standard.removeObject(forKey: customFrenchWordsKey)
+            
+            // Clear all mastery
+            frenchMastery = [:]
+            UserDefaults.standard.removeObject(forKey: frenchMasteryKey)
+        }
+    }
 }

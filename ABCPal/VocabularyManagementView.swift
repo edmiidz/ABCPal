@@ -18,6 +18,8 @@ struct VocabularyManagementView: View {
     @State private var newWords = ""
     @State private var importResult: (added: Int, duplicates: Int)? = nil
     @State private var showingImportResult = false
+    @State private var wordToDelete: String? = nil
+    @State private var showingDeleteConfirmation = false
     
     var languageName: String {
         language == "en-US" ? "English" : "French"
@@ -81,9 +83,37 @@ struct VocabularyManagementView: View {
                     }) {
                         HStack {
                             Image(systemName: "arrow.counterclockwise")
-                            Text("Reset Progress")
+                            Text("Reset Progress Only")
+                        }
+                        .foregroundColor(.orange)
+                    }
+                    
+                    Button(action: {
+                        vocabManager.deleteAllWords(for: language)
+                    }) {
+                        HStack {
+                            Image(systemName: "trash")
+                            Text("Delete All Custom Words")
                         }
                         .foregroundColor(.red)
+                    }
+                }
+                
+                if !activeWords.isEmpty {
+                    Section(header: Text("Words to Learn (\(activeWords.count))")) {
+                        ForEach(activeWords, id: \.self) { word in
+                            HStack {
+                                Text(word)
+                                Spacer()
+                                Button(action: {
+                                    wordToDelete = word
+                                    showingDeleteConfirmation = true
+                                }) {
+                                    Image(systemName: "trash")
+                                        .foregroundColor(.red)
+                                }
+                            }
+                        }
                     }
                 }
                 
@@ -95,6 +125,13 @@ struct VocabularyManagementView: View {
                                 Spacer()
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.green)
+                                Button(action: {
+                                    wordToDelete = word
+                                    showingDeleteConfirmation = true
+                                }) {
+                                    Image(systemName: "trash")
+                                        .foregroundColor(.red)
+                                }
                             }
                         }
                     }
@@ -226,6 +263,16 @@ struct VocabularyManagementView: View {
                 message: Text(message),
                 dismissButton: .default(Text("OK"))
             )
+        }
+        .alert("Delete Word?", isPresented: $showingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                if let word = wordToDelete {
+                    vocabManager.deleteWord(word, language: language)
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete '\(wordToDelete ?? "")'?")
         }
     }
 }

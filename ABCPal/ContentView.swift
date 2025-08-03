@@ -43,6 +43,10 @@ struct ContentView: View {
             VocabQuizView(language: lang, goBack: {
                 selectedLearningType = nil
             })
+        } else if let lang = selectedLanguage, selectedLearningType == "read_book" {
+            BookReaderView(language: lang, goBack: {
+                selectedLearningType = nil
+            })
         } else if let lang = selectedLanguage, let casing = selectedCase, selectedLearningType?.starts(with: "abc") == true {
             QuizView(language: lang, letterCase: casing, goBack: {
                 selectedCase = nil
