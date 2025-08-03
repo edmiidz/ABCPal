@@ -217,8 +217,8 @@ class VocabularyManager: ObservableObject {
     
     func deleteAllWords(for language: String) {
         if language == "en-US" {
-            // Keep only the default words from the file
-            loadVocabulary()
+            // Clear ALL words
+            englishWords = []
             
             // Clear all custom words
             UserDefaults.standard.removeObject(forKey: customEnglishWordsKey)
@@ -227,8 +227,8 @@ class VocabularyManager: ObservableObject {
             englishMastery = [:]
             UserDefaults.standard.removeObject(forKey: englishMasteryKey)
         } else if language == "fr-CA" {
-            // Keep only the default words from the file
-            loadVocabulary()
+            // Clear ALL words
+            frenchWords = []
             
             // Clear all custom words
             UserDefaults.standard.removeObject(forKey: customFrenchWordsKey)
@@ -237,5 +237,21 @@ class VocabularyManager: ObservableObject {
             frenchMastery = [:]
             UserDefaults.standard.removeObject(forKey: frenchMasteryKey)
         }
+    }
+    
+    func restoreDefaultWords(for language: String) {
+        // Clear custom words first
+        if language == "en-US" {
+            UserDefaults.standard.removeObject(forKey: customEnglishWordsKey)
+            englishMastery = [:]
+            UserDefaults.standard.removeObject(forKey: englishMasteryKey)
+        } else if language == "fr-CA" {
+            UserDefaults.standard.removeObject(forKey: customFrenchWordsKey)
+            frenchMastery = [:]
+            UserDefaults.standard.removeObject(forKey: frenchMasteryKey)
+        }
+        
+        // Reload vocabulary (will load defaults only)
+        loadVocabulary()
     }
 }

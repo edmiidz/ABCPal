@@ -59,6 +59,20 @@ struct VocabularyManagementView: View {
                     }
                 }
                 
+                if activeWords.isEmpty && masteredWords.isEmpty {
+                    Section(header: Text("No Vocabulary")) {
+                        Button(action: {
+                            vocabManager.restoreDefaultWords(for: language)
+                        }) {
+                            HStack {
+                                Image(systemName: "arrow.down.doc")
+                                Text("Restore Default Words")
+                            }
+                            .foregroundColor(.blue)
+                        }
+                    }
+                }
+                
                 Section(header: Text("Actions")) {
                     Button(action: {
                         showingAddWords = true
@@ -93,7 +107,7 @@ struct VocabularyManagementView: View {
                     }) {
                         HStack {
                             Image(systemName: "trash")
-                            Text("Delete All Custom Words")
+                            Text("Delete All Words")
                         }
                         .foregroundColor(.red)
                     }
