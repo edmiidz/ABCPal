@@ -75,7 +75,7 @@ struct BookReaderView: View {
                     }
                     .padding(.bottom, 50)
                 }
-            } else if let image = capturedImage, !isShowingCropView {
+            } else if capturedImage != nil && !isShowingCropView {
                 // Text display view
                 ScrollView {
                     VStack(spacing: 20) {
@@ -102,18 +102,26 @@ struct BookReaderView: View {
                         if isProcessing {
                             ProgressView(language == "fr-CA" ? "Lecture du texte..." : "Reading text...")
                                 .padding()
-                        } else if !recognizedText.isEmpty {
-                            // Display recognized text
-                            Text(recognizedText)
-                                .font(.body)
-                                .padding()
-                                .background(Color.gray.opacity(0.1))
-                                .cornerRadius(10)
-                                .padding(.horizontal)
+                        } else {
+                            // Display recognized text or no text message
+                            if !recognizedText.isEmpty {
+                                Text(recognizedText)
+                                    .font(.body)
+                                    .padding()
+                                    .background(Color.gray.opacity(0.1))
+                                    .cornerRadius(10)
+                                    .padding(.horizontal)
+                            } else {
+                                Text(language == "fr-CA" ? "Aucun texte reconnu. Essayez une nouvelle photo." : "No text recognized. Try a new photo.")
+                                    .font(.body)
+                                    .foregroundColor(.gray)
+                                    .padding()
+                                    .multilineTextAlignment(.center)
+                            }
                             
-                            // Action buttons
+                            // Action buttons - always visible
                             VStack(spacing: 15) {
-                                // Read aloud button
+                                // Read aloud button - only enabled if there's text
                                 Button(action: readTextAloud) {
                                     HStack {
                                         Image(systemName: "speaker.wave.2.fill")
@@ -121,12 +129,13 @@ struct BookReaderView: View {
                                     }
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background(Color.blue)
+                                    .background(recognizedText.isEmpty ? Color.gray : Color.blue)
                                     .foregroundColor(.white)
                                     .cornerRadius(10)
                                 }
+                                .disabled(recognizedText.isEmpty)
                                 
-                                // Capture vocabulary button
+                                // Capture vocabulary button - only enabled if there's text
                                 Button(action: {
                                     showingVocabCapture = true
                                 }) {
@@ -136,15 +145,18 @@ struct BookReaderView: View {
                                     }
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background(Color.purple)
+                                    .background(recognizedText.isEmpty ? Color.gray : Color.purple)
                                     .foregroundColor(.white)
                                     .cornerRadius(10)
                                 }
+                                .disabled(recognizedText.isEmpty)
                                 
-                                // New photo button
+                                // New photo button - always enabled
                                 Button(action: {
                                     capturedImage = nil
                                     recognizedText = ""
+                                    isShowingCropView = false
+                                    isProcessing = false
                                 }) {
                                     HStack {
                                         Image(systemName: "camera")
@@ -162,6 +174,7 @@ struct BookReaderView: View {
                     }
                     .padding(.vertical)
                 }
+                .background(Color(UIColor.systemBackground))
             }
             
             // Crop view overlay
