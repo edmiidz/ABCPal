@@ -313,6 +313,7 @@ struct VocabCaptureView: View {
     
     @State private var selectedWords: Set<String> = []
     @Environment(\.presentationMode) var presentationMode
+    @State private var hasInitialized = false
     
     var extractedWords: [String] {
         let words = text.lowercased()
@@ -327,9 +328,30 @@ struct VocabCaptureView: View {
     var body: some View {
         NavigationView {
             VStack {
-                Text(language == "fr-CA" ? "Sélectionnez les mots à ajouter" : "Select words to add")
-                    .font(.headline)
-                    .padding()
+                HStack {
+                    Text(language == "fr-CA" ? "Sélectionnez les mots à ajouter" : "Select words to add")
+                        .font(.headline)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        if selectedWords.count == extractedWords.count {
+                            // Deselect all
+                            selectedWords.removeAll()
+                        } else {
+                            // Select all
+                            selectedWords = Set(extractedWords)
+                        }
+                    }) {
+                        Text(selectedWords.count == extractedWords.count ? 
+                             (language == "fr-CA" ? "Désélectionner tout" : "Deselect All") :
+                             (language == "fr-CA" ? "Sélectionner tout" : "Select All"))
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.top)
                 
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 10) {
@@ -351,6 +373,13 @@ struct VocabCaptureView: View {
                         }
                     }
                     .padding()
+                }
+                .onAppear {
+                    // Initialize with all words selected
+                    if !hasInitialized {
+                        selectedWords = Set(extractedWords)
+                        hasInitialized = true
+                    }
                 }
                 
                 HStack {
