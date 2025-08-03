@@ -39,6 +39,10 @@ struct ContentView: View {
                 UserDefaults.standard.set(userName, forKey: userNameKey)
                 showNameInput = false
             })
+        } else if let lang = selectedLanguage, selectedLearningType == "numbers" {
+            NumbersQuizView(language: lang, goBack: {
+                selectedLearningType = nil
+            })
         } else if let lang = selectedLanguage, selectedLearningType == "vocab" {
             VocabQuizView(language: lang, goBack: {
                 selectedLearningType = nil

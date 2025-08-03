@@ -43,6 +43,10 @@ struct LearningTypeSelectionView: View {
         language == "fr-CA" ? "Lire un livre" : "Read a Book"
     }
     
+    var numbersText: String {
+        language == "fr-CA" ? "Nombres 1-100" : "Numbers 1-100"
+    }
+    
     var hasVocabulary: Bool {
         let words = language == "en-US" ? vocabManager.englishWords : vocabManager.frenchWords
         return !words.isEmpty
@@ -159,6 +163,33 @@ struct LearningTypeSelectionView: View {
                 Button(action: {
                     synthesizer.stopSpeaking(at: .immediate)
                     speak(text: readBookText)
+                }) {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .font(.title2)
+                        .foregroundColor(.blue)
+                }
+            }
+            
+            // Numbers option
+            HStack(spacing: 12) {
+                Button(action: {
+                    synthesizer.stopSpeaking(at: .immediate)
+                    onTypeSelected("numbers")
+                }) {
+                    HStack {
+                        Text("🔢")
+                        Text(numbersText)
+                    }
+                    .font(.title2)
+                    .padding()
+                    .frame(minWidth: 200)
+                    .background(Color.indigo.opacity(0.3))
+                    .cornerRadius(12)
+                }
+
+                Button(action: {
+                    synthesizer.stopSpeaking(at: .immediate)
+                    speak(text: numbersText)
                 }) {
                     Image(systemName: "speaker.wave.2.fill")
                         .font(.title2)
