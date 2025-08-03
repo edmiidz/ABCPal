@@ -83,20 +83,24 @@ class VocabularyManager: ObservableObject {
     }
     
     func updateMastery(word: String, language: String, count: Int) {
+        // Use lowercase for mastery tracking to handle proper nouns consistently
+        let masteryKey = word.lowercased()
         if language == "en-US" {
-            englishMastery[word] = count
+            englishMastery[masteryKey] = count
             saveMastery(for: language)
         } else if language == "fr-CA" {
-            frenchMastery[word] = count
+            frenchMastery[masteryKey] = count
             saveMastery(for: language)
         }
     }
     
     func getMastery(for word: String, language: String) -> Int {
+        // Use lowercase for mastery tracking to handle proper nouns consistently
+        let masteryKey = word.lowercased()
         if language == "en-US" {
-            return englishMastery[word] ?? 0
+            return englishMastery[masteryKey] ?? 0
         } else if language == "fr-CA" {
-            return frenchMastery[word] ?? 0
+            return frenchMastery[masteryKey] ?? 0
         }
         return 0
     }
@@ -112,7 +116,8 @@ class VocabularyManager: ObservableObject {
     }
     
     func addCustomWords(_ words: [String], language: String) -> (added: Int, duplicates: Int) {
-        let cleanedWords = words.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+        // Clean words but preserve case for proper nouns
+        let cleanedWords = words.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
         
         let uniqueNewWords = Set(cleanedWords)
@@ -120,45 +125,47 @@ class VocabularyManager: ObservableObject {
         var duplicateCount = 0
         
         if language == "en-US" {
-            let existingWords = Set(englishWords)
+            // Check for duplicates using case-insensitive comparison
+            let existingWordsLowercase = Set(englishWords.map { $0.lowercased() })
             let existingCustom = UserDefaults.standard.stringArray(forKey: customEnglishWordsKey) ?? []
             
             // Count new vs duplicate words
             for word in uniqueNewWords {
-                if existingWords.contains(word) {
+                if existingWordsLowercase.contains(word.lowercased()) {
                     duplicateCount += 1
                 } else {
                     addedCount += 1
                 }
             }
             
-            // Only add truly new words
-            let newWordsToAdd = uniqueNewWords.subtracting(existingWords)
-            let allCustom = Array(Set(existingCustom + Array(newWordsToAdd)))
+            // Only add truly new words (case-insensitive check)
+            let newWordsToAdd = uniqueNewWords.filter { !existingWordsLowercase.contains($0.lowercased()) }
+            let allCustom = Array(Set(existingCustom + newWordsToAdd))
             UserDefaults.standard.set(allCustom, forKey: customEnglishWordsKey)
             
-            // Reload vocabulary to include new words
-            englishWords = Array(Set(englishWords + Array(newWordsToAdd))).sorted()
+            // Reload vocabulary to include new words (preserving case)
+            englishWords = Array(Set(englishWords + newWordsToAdd)).sorted { $0.lowercased() < $1.lowercased() }
         } else if language == "fr-CA" {
-            let existingWords = Set(frenchWords)
+            // Check for duplicates using case-insensitive comparison
+            let existingWordsLowercase = Set(frenchWords.map { $0.lowercased() })
             let existingCustom = UserDefaults.standard.stringArray(forKey: customFrenchWordsKey) ?? []
             
             // Count new vs duplicate words
             for word in uniqueNewWords {
-                if existingWords.contains(word) {
+                if existingWordsLowercase.contains(word.lowercased()) {
                     duplicateCount += 1
                 } else {
                     addedCount += 1
                 }
             }
             
-            // Only add truly new words
-            let newWordsToAdd = uniqueNewWords.subtracting(existingWords)
-            let allCustom = Array(Set(existingCustom + Array(newWordsToAdd)))
+            // Only add truly new words (case-insensitive check)
+            let newWordsToAdd = uniqueNewWords.filter { !existingWordsLowercase.contains($0.lowercased()) }
+            let allCustom = Array(Set(existingCustom + newWordsToAdd))
             UserDefaults.standard.set(allCustom, forKey: customFrenchWordsKey)
             
-            // Reload vocabulary to include new words
-            frenchWords = Array(Set(frenchWords + Array(newWordsToAdd))).sorted()
+            // Reload vocabulary to include new words (preserving case)
+            frenchWords = Array(Set(frenchWords + newWordsToAdd)).sorted { $0.lowercased() < $1.lowercased() }
         }
         
         return (added: addedCount, duplicates: duplicateCount)
@@ -180,7 +187,8 @@ class VocabularyManager: ObservableObject {
         let mastery = language == "en-US" ? englishMastery : frenchMastery
         
         // Filter out words that have been mastered (2+ correct on first attempt)
-        return allWords.filter { (mastery[$0] ?? 0) < 2 }
+        // Use lowercase for mastery lookup to handle proper nouns
+        return allWords.filter { (mastery[$0.lowercased()] ?? 0) < 2 }
     }
     
     func getMasteredWords(for language: String) -> [String] {
@@ -188,25 +196,30 @@ class VocabularyManager: ObservableObject {
         let mastery = language == "en-US" ? englishMastery : frenchMastery
         
         // Return words that have been mastered
-        return allWords.filter { (mastery[$0] ?? 0) >= 2 }
+        // Use lowercase for mastery lookup to handle proper nouns
+        return allWords.filter { (mastery[$0.lowercased()] ?? 0) >= 2 }
     }
     
     func deleteWord(_ word: String, language: String) {
         if language == "en-US" {
+            // Remove exact match from words list
             englishWords.removeAll { $0 == word }
-            englishMastery.removeValue(forKey: word)
+            // Remove mastery using lowercase key
+            englishMastery.removeValue(forKey: word.lowercased())
             
-            // Remove from custom words if it exists there
+            // Remove from custom words if it exists there (exact match)
             var customWords = UserDefaults.standard.stringArray(forKey: customEnglishWordsKey) ?? []
             customWords.removeAll { $0 == word }
             UserDefaults.standard.set(customWords, forKey: customEnglishWordsKey)
             
             saveMastery(for: language)
         } else if language == "fr-CA" {
+            // Remove exact match from words list
             frenchWords.removeAll { $0 == word }
-            frenchMastery.removeValue(forKey: word)
+            // Remove mastery using lowercase key
+            frenchMastery.removeValue(forKey: word.lowercased())
             
-            // Remove from custom words if it exists there
+            // Remove from custom words if it exists there (exact match)
             var customWords = UserDefaults.standard.stringArray(forKey: customFrenchWordsKey) ?? []
             customWords.removeAll { $0 == word }
             UserDefaults.standard.set(customWords, forKey: customFrenchWordsKey)

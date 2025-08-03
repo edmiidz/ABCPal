@@ -19,7 +19,6 @@ struct LanguageSelectionView: View {
     @State private var showingShare = false
     @State private var showingNameChange = false
     @State private var showingVocabManagement = false
-    @State private var vocabManagementLanguage = "en-US"
     
     let synthesizer = AVSpeechSynthesizer()
 
@@ -162,8 +161,7 @@ struct LanguageSelectionView: View {
                 showingAbout: $showingAbout,
                 showingShare: $showingShare,
                 showingNameChange: $showingNameChange,
-                showingVocabManagement: $showingVocabManagement,
-                vocabManagementLanguage: $vocabManagementLanguage
+                showingVocabManagement: $showingVocabManagement
             )
             .presentationDetents([.medium])
         }
@@ -177,7 +175,7 @@ struct LanguageSelectionView: View {
             ChangeUsernameView(isShowing: $showingNameChange)
         }
         .sheet(isPresented: $showingVocabManagement) {
-            VocabularyManagementView(isShowing: $showingVocabManagement, language: vocabManagementLanguage)
+            VocabularyLanguageSelectionView(isShowing: $showingVocabManagement)
         }
     }
     
@@ -212,7 +210,6 @@ struct MenuModalView: View {
     @Binding var showingShare: Bool
     @Binding var showingNameChange: Bool
     @Binding var showingVocabManagement: Bool
-    @Binding var vocabManagementLanguage: String
     
     var body: some View {
         NavigationView {
@@ -247,27 +244,13 @@ struct MenuModalView: View {
                     }
                 }
                 
-                Section(header: Text("Vocabulary")) {
-                    Button(action: {
-                        vocabManagementLanguage = "en-US"
-                        showingMenu = false
-                        showingVocabManagement = true
-                    }) {
-                        HStack {
-                            Image(systemName: "book.closed")
-                            Text("Manage English Vocabulary")
-                        }
-                    }
-                    
-                    Button(action: {
-                        vocabManagementLanguage = "fr-CA"
-                        showingMenu = false
-                        showingVocabManagement = true
-                    }) {
-                        HStack {
-                            Image(systemName: "book.closed")
-                            Text("Manage French Vocabulary")
-                        }
+                Button(action: {
+                    showingMenu = false
+                    showingVocabManagement = true
+                }) {
+                    HStack {
+                        Image(systemName: "book.closed")
+                        Text("Manage Vocabulary")
                     }
                 }
             }
@@ -510,4 +493,93 @@ struct AlphaQRCodeView: View {
         
         return UIImage(systemName: "xmark.circle") ?? UIImage()
     }
-}   
+}
+
+// MARK: - Vocabulary Language Selection
+
+struct VocabularyLanguageSelectionView: View {
+    @Binding var isShowing: Bool
+    @State private var selectedLanguage: String?
+    @State private var showingManagementView = false
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 30) {
+                Text("Select Language")
+                    .font(.largeTitle)
+                    .padding(.top, 40)
+                
+                Text("Which vocabulary list would you like to manage?")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+                
+                Spacer()
+                
+                // English option
+                Button(action: {
+                    selectedLanguage = "en-US"
+                    showingManagementView = true
+                }) {
+                    HStack {
+                        Text("🇺🇸")
+                            .font(.system(size: 40))
+                        Text("English Vocabulary")
+                            .font(.title2)
+                            .fontWeight(.medium)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .background(Color.green.opacity(0.2))
+                    .cornerRadius(15)
+                }
+                .padding(.horizontal, 30)
+                
+                // French option
+                Button(action: {
+                    selectedLanguage = "fr-CA"
+                    showingManagementView = true
+                }) {
+                    HStack {
+                        Text("🇫🇷")
+                            .font(.system(size: 40))
+                        Text("French Vocabulary")
+                            .font(.title2)
+                            .fontWeight(.medium)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .background(Color.blue.opacity(0.2))
+                    .cornerRadius(15)
+                }
+                .padding(.horizontal, 30)
+                
+                Spacer()
+                Spacer()
+            }
+            .navigationTitle("Manage Vocabulary")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        isShowing = false
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingManagementView) {
+            if let language = selectedLanguage {
+                VocabularyManagementView(
+                    isShowing: $showingManagementView,
+                    language: language
+                )
+            }
+        }
+        .onChange(of: showingManagementView) { newValue in
+            if !newValue {
+                // When management view closes, close this view too
+                isShowing = false
+            }
+        }
+    }
+}

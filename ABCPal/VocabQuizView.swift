@@ -337,7 +337,8 @@ struct VocabQuizView: View {
 
     func checkAnswer(_ selected: String) {
         areButtonsDisabled = true
-        if selected == correctWord {
+        // Compare lowercase versions for proper noun support
+        if selected.lowercased() == correctWord.lowercased() {
             // Only increment mastery if this is the first attempt
             if isFirstAttempt {
                 let currentMastery = vocabManager.getMastery(for: correctWord, language: language)
@@ -345,7 +346,7 @@ struct VocabQuizView: View {
                 let count = currentMastery + 1
 
                 if count == 1 {
-                    celebrationWord = correctWord
+                    celebrationWord = selected  // Use the selected word to maintain display case
                     speak(word: correctWord)
                 } else {
                     feedback = language == "fr-CA" ? "Bravo!" : "Good job!"
@@ -357,7 +358,7 @@ struct VocabQuizView: View {
                 }
             } else {
                 // Not first attempt, just acknowledge the correct answer
-                celebrationWord = correctWord
+                celebrationWord = selected  // Use the selected word to maintain display case
                 speak(word: correctWord)
             }
             

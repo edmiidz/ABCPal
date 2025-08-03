@@ -312,17 +312,30 @@ struct VocabCaptureView: View {
     let onComplete: ([String]) -> Void
     
     @State private var selectedWords: Set<String> = []
+    @State private var showingProperNounView = false
     @Environment(\.presentationMode) var presentationMode
     @State private var hasInitialized = false
     
-    var extractedWords: [String] {
-        let words = text.lowercased()
+    // Extract words while preserving original case for display
+    var extractedWords: [(original: String, lowercase: String)] {
+        let words = text
             .components(separatedBy: .whitespacesAndNewlines)
             .flatMap { $0.components(separatedBy: .punctuationCharacters) }
             .filter { $0.count > 2 }
             .filter { !$0.isEmpty }
         
-        return Array(Set(words)).sorted()
+        // Create pairs of original and lowercase, removing duplicates based on lowercase
+        var uniqueWords: [String: String] = [:] // lowercase: original
+        for word in words {
+            let lower = word.lowercased()
+            // Keep the original case version if we haven't seen this word yet
+            if uniqueWords[lower] == nil {
+                uniqueWords[lower] = word
+            }
+        }
+        
+        return uniqueWords.map { (original: $0.value, lowercase: $0.key) }
+            .sorted { $0.lowercase < $1.lowercase }
     }
     
     var body: some View {
@@ -340,7 +353,7 @@ struct VocabCaptureView: View {
                             selectedWords.removeAll()
                         } else {
                             // Select all
-                            selectedWords = Set(extractedWords)
+                            selectedWords = Set(extractedWords.map { $0.lowercase })
                         }
                     }) {
                         Text(selectedWords.count == extractedWords.count ? 
@@ -355,19 +368,19 @@ struct VocabCaptureView: View {
                 
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 10) {
-                        ForEach(extractedWords, id: \.self) { word in
+                        ForEach(extractedWords, id: \.lowercase) { wordPair in
                             Button(action: {
-                                if selectedWords.contains(word) {
-                                    selectedWords.remove(word)
+                                if selectedWords.contains(wordPair.lowercase) {
+                                    selectedWords.remove(wordPair.lowercase)
                                 } else {
-                                    selectedWords.insert(word)
+                                    selectedWords.insert(wordPair.lowercase)
                                 }
                             }) {
-                                Text(word)
+                                Text(wordPair.original) // Show original case
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
-                                    .background(selectedWords.contains(word) ? Color.purple : Color.gray.opacity(0.3))
-                                    .foregroundColor(selectedWords.contains(word) ? .white : .primary)
+                                    .background(selectedWords.contains(wordPair.lowercase) ? Color.purple : Color.gray.opacity(0.3))
+                                    .foregroundColor(selectedWords.contains(wordPair.lowercase) ? .white : .primary)
                                     .cornerRadius(20)
                             }
                         }
@@ -377,7 +390,7 @@ struct VocabCaptureView: View {
                 .onAppear {
                     // Initialize with all words selected
                     if !hasInitialized {
-                        selectedWords = Set(extractedWords)
+                        selectedWords = Set(extractedWords.map { $0.lowercase })
                         hasInitialized = true
                     }
                 }
@@ -390,14 +403,130 @@ struct VocabCaptureView: View {
                     
                     Spacer()
                     
-                    Button(language == "fr-CA" ? "Ajouter \(selectedWords.count) mots" : "Add \(selectedWords.count) words") {
-                        onComplete(Array(selectedWords))
-                        presentationMode.wrappedValue.dismiss()
+                    Button(language == "fr-CA" ? "Suivant" : "Next") {
+                        // Check if any selected words start with capital letter
+                        let capitalizedWords = extractedWords.filter { wordPair in
+                            selectedWords.contains(wordPair.lowercase) && 
+                            wordPair.original.first?.isUppercase == true
+                        }
+                        
+                        if !capitalizedWords.isEmpty {
+                            // Show proper noun detection view
+                            showingProperNounView = true
+                        } else {
+                            // Just add the words as lowercase
+                            onComplete(Array(selectedWords))
+                            presentationMode.wrappedValue.dismiss()
+                        }
                     }
                     .disabled(selectedWords.isEmpty)
                     .padding()
                     .foregroundColor(.white)
                     .background(selectedWords.isEmpty ? Color.gray : Color.purple)
+                    .cornerRadius(10)
+                }
+                .padding()
+            }
+            .navigationBarHidden(true)
+        }
+        .sheet(isPresented: $showingProperNounView) {
+            ProperNounSelectionView(
+                words: extractedWords.filter { wordPair in
+                    selectedWords.contains(wordPair.lowercase) && 
+                    wordPair.original.first?.isUppercase == true
+                },
+                language: language,
+                onComplete: { properNouns, regularWords in
+                    // Get all originally selected words that weren't capitalized
+                    let nonCapitalizedWords = extractedWords
+                        .filter { wordPair in
+                            selectedWords.contains(wordPair.lowercase) && 
+                            wordPair.original.first?.isUppercase != true
+                        }
+                        .map { $0.lowercase }
+                    
+                    // Combine proper nouns (keep capitalized), regular words from capitalized selection, and non-capitalized words
+                    let allWords = properNouns + regularWords + nonCapitalizedWords
+                    onComplete(allWords)
+                    presentationMode.wrappedValue.dismiss()
+                }
+            )
+        }
+    }
+}
+
+// Proper Noun Selection View
+struct ProperNounSelectionView: View {
+    let words: [(original: String, lowercase: String)]
+    let language: String
+    let onComplete: ([String], [String]) -> Void
+    
+    @State private var properNouns: Set<String> = []
+    @Environment(\.presentationMode) var presentationMode
+    @State private var hasInitialized = false
+    
+    var body: some View {
+        NavigationView {
+            VStack {
+                Text(language == "fr-CA" ? "Y a-t-il des noms propres?" : "Are any of these names?")
+                    .font(.headline)
+                    .padding(.top)
+                    .padding(.horizontal)
+                
+                Text(language == "fr-CA" ? "Appuyez pour désélectionner les noms propres" : "Tap to deselect proper nouns")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                    .padding(.horizontal)
+                
+                ScrollView {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 10) {
+                        ForEach(words, id: \.lowercase) { wordPair in
+                            Button(action: {
+                                if properNouns.contains(wordPair.original) {
+                                    properNouns.remove(wordPair.original)
+                                } else {
+                                    properNouns.insert(wordPair.original)
+                                }
+                            }) {
+                                Text(properNouns.contains(wordPair.original) ? wordPair.original : wordPair.lowercase)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(properNouns.contains(wordPair.original) ? Color.orange : Color.gray.opacity(0.3))
+                                    .foregroundColor(properNouns.contains(wordPair.original) ? .white : .primary)
+                                    .cornerRadius(20)
+                            }
+                        }
+                    }
+                    .padding()
+                }
+                .onAppear {
+                    // Initialize with all capitalized words selected as proper nouns
+                    if !hasInitialized {
+                        properNouns = Set(words.map { $0.original })
+                        hasInitialized = true
+                    }
+                }
+                
+                HStack {
+                    Button(language == "fr-CA" ? "Retour" : "Back") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                    .padding()
+                    
+                    Spacer()
+                    
+                    Button(language == "fr-CA" ? "Terminer" : "Done") {
+                        // Separate proper nouns from regular words
+                        let properNounsList = Array(properNouns)
+                        let regularWords = words
+                            .filter { !properNouns.contains($0.original) }
+                            .map { $0.lowercase }
+                        
+                        onComplete(properNounsList, regularWords)
+                    }
+                    .padding()
+                    .foregroundColor(.white)
+                    .background(Color.purple)
                     .cornerRadius(10)
                 }
                 .padding()
