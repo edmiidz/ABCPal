@@ -26,6 +26,7 @@ struct QuizView: View {
     @State private var celebrationLetter: String? = nil
     @State private var thinkingLetter: String? = nil
     @State private var isCompleted = false
+    @State private var isFirstAttempt = true
     
     // Get the user name from UserDefaults
     var userName: String {
@@ -370,22 +371,29 @@ struct QuizView: View {
     func checkAnswer(_ selected: String) {
         areButtonsDisabled = true
         if selected == correctLetter {
-            mastery[correctLetter, default: 0] += 1
-            let count = mastery[correctLetter] ?? 0
+            // Only increment mastery if this is the first attempt
+            if isFirstAttempt {
+                mastery[correctLetter, default: 0] += 1
+                let count = mastery[correctLetter] ?? 0
 
-            // For first time correct, just say the letter and show celebration
-            if count == 1 {
+                // For first time correct, just say the letter and show celebration
+                if count == 1 {
+                    celebrationLetter = correctLetter
+                    speak(letter: correctLetter)
+                } else {
+                    // For subsequent correct answers, say "Bravo!" first
+                    feedback = language == "fr-CA" ? "Bravo!" : "Good job!"
+                    speak(text: feedback)
+                    
+                    // Then say the letter after a short delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                        speak(letter: correctLetter)
+                    }
+                }
+            } else {
+                // Not first attempt, just acknowledge the correct answer
                 celebrationLetter = correctLetter
                 speak(letter: correctLetter)
-            } else {
-                // For subsequent correct answers, say "Bravo!" first
-                feedback = language == "fr-CA" ? "Bravo!" : "Good job!"
-                speak(text: feedback)
-                
-                // Then say the letter after a short delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-                    speak(letter: correctLetter)
-                }
             }
             
             // Start next quiz after appropriate delay
@@ -396,6 +404,7 @@ struct QuizView: View {
         } else {
             // Mark the wrong selection with thinking emoji
             thinkingLetter = selected
+            isFirstAttempt = false  // Mark that first attempt failed
             
             feedback = language == "fr-CA"
                 ? "Non, c'est \(selected.uppercased())."
@@ -482,6 +491,7 @@ struct QuizView: View {
         feedback = ""
         feedbackOpacity = 1.0
         areButtonsDisabled = false
+        isFirstAttempt = true  // Reset for new letter
 
         // Speak prompt only if it's the first time
         if !hasPlayedPrompt {

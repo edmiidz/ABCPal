@@ -94,8 +94,11 @@ swiftc -typecheck -sdk $(xcrun --sdk iphoneos --show-sdk-path) -target arm64-app
 ## Key Features
 
 ### Mastery System
-- Each letter/word must be correctly identified twice
+- Each letter/word must be correctly identified twice ON FIRST ATTEMPT
+- If user selects wrong answer first, mastery count is NOT incremented when they eventually get it right
+- Only first-attempt correct answers count toward mastery
 - Progress tracked in memory (not persisted)
+- "Good job!" feedback only shown on second mastery (not on corrections)
 - Celebration screen when all items mastered
 
 ### Audio Features

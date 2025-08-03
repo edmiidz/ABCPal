@@ -26,6 +26,7 @@ struct VocabQuizView: View {
     @State private var thinkingWord: String? = nil
     @State private var isCompleted = false
     @State private var allWords: [String] = []
+    @State private var isFirstAttempt = true
     
     var userName: String {
         UserDefaults.standard.string(forKey: "userNameKey") ?? "Student"
@@ -364,19 +365,26 @@ struct VocabQuizView: View {
     func checkAnswer(_ selected: String) {
         areButtonsDisabled = true
         if selected == correctWord {
-            mastery[correctWord, default: 0] += 1
-            let count = mastery[correctWord] ?? 0
+            // Only increment mastery if this is the first attempt
+            if isFirstAttempt {
+                mastery[correctWord, default: 0] += 1
+                let count = mastery[correctWord] ?? 0
 
-            if count == 1 {
+                if count == 1 {
+                    celebrationWord = correctWord
+                    speak(word: correctWord)
+                } else {
+                    feedback = language == "fr-CA" ? "Bravo!" : "Good job!"
+                    speak(text: feedback)
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+                        speak(word: correctWord)
+                    }
+                }
+            } else {
+                // Not first attempt, just acknowledge the correct answer
                 celebrationWord = correctWord
                 speak(word: correctWord)
-            } else {
-                feedback = language == "fr-CA" ? "Bravo!" : "Good job!"
-                speak(text: feedback)
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-                    speak(word: correctWord)
-                }
             }
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
@@ -385,6 +393,7 @@ struct VocabQuizView: View {
             }
         } else {
             thinkingWord = selected
+            isFirstAttempt = false  // Mark that first attempt failed
             
             feedback = language == "fr-CA"
                 ? "Non, c'est \(selected)."
@@ -463,6 +472,7 @@ struct VocabQuizView: View {
         feedback = ""
         feedbackOpacity = 1.0
         areButtonsDisabled = false
+        isFirstAttempt = true  // Reset for new word
 
         if !hasPlayedPrompt {
             speak(text: promptText)
