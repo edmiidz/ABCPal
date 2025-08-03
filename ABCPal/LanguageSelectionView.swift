@@ -98,7 +98,7 @@ struct LanguageSelectionView: View {
                         playWhooshSound()
                         onLanguageSelected("en-US")
                     }) {
-                        Text("🇺🇸 English Alphabet")
+                        Text("🇺🇸 English")
                             .font(.title2)
                             .frame(minWidth: 200, minHeight: 60)
                             .background(Color.green.opacity(0.3))
@@ -107,7 +107,7 @@ struct LanguageSelectionView: View {
                     
                     Button(action: {
                         synthesizer.stopSpeaking(at: .immediate)
-                        speakText("English Alphabet", language: "en-US")
+                        speakText("English", language: "en-US")
                     }) {
                         Image(systemName: "speaker.wave.2.fill")
                             .font(.title2)
@@ -122,7 +122,7 @@ struct LanguageSelectionView: View {
                         synthesizer.stopSpeaking(at: .immediate)
                         onLanguageSelected("fr-CA")
                     }) {
-                        Text("🇫🇷 Alphabet Français")
+                        Text("🇫🇷 Français")
                             .font(.title2)
                             .frame(minWidth: 200, minHeight: 60)
                             .background(Color.blue.opacity(0.3))
@@ -131,7 +131,7 @@ struct LanguageSelectionView: View {
                     
                     Button(action: {
                         synthesizer.stopSpeaking(at: .immediate)
-                        speakText("Alphabet Français", language: "fr-CA")
+                        speakText("Français", language: "fr-CA")
                     }) {
                         Image(systemName: "speaker.wave.2.fill")
                             .font(.title2)
