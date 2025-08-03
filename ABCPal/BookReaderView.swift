@@ -496,48 +496,99 @@ struct CropView: View {
     private func processImage() {
         guard let currentImage = image else { return }
         
-        let screenSize = UIScreen.main.bounds.size
-        let imageSize = currentImage.size
-        let imageAspect = imageSize.width / imageSize.height
-        let screenAspect = screenSize.width / screenSize.height
+        // Get the actual view size from the geometry
+        let viewSize = CGSize(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height * 0.4)
         
-        var scaledImageSize: CGSize
-        if imageAspect > screenAspect {
-            scaledImageSize = CGSize(width: screenSize.height * imageAspect, height: screenSize.height)
-        } else {
-            scaledImageSize = CGSize(width: screenSize.width, height: screenSize.width / imageAspect)
-        }
+        // Calculate how the image is displayed in the view
+        let imageFrame = calculateImageFrame(image: currentImage, in: viewSize)
         
-        let centerX = screenSize.width / 2
-        let centerY = screenSize.height * 0.3
+        // Calculate crop box in view coordinates (using inner guide dimensions)
+        let cropBoxWidth = viewSize.width * 0.55
+        let cropBoxHeight = viewSize.width * 0.84
         
-        // Use the inner yellow guide dimensions (55% width, 84% of width for height)
-        let cropWidth = screenSize.width * 0.55 * (imageSize.width / scaledImageSize.width)
-        let cropHeight = screenSize.width * 0.84 * (imageSize.height / scaledImageSize.height)
+        let cropBoxX = viewSize.width / 2 - cropBoxWidth / 2 - offset.width
+        let cropBoxY = viewSize.height / 2 - cropBoxHeight / 2 - offset.height
         
-        let cropX = ((centerX - (screenSize.width * 0.55 / 2)) - offset.width) * (imageSize.width / scaledImageSize.width)
-        let cropY = ((centerY - (screenSize.width * 0.84 / 2)) - offset.height) * (imageSize.height / scaledImageSize.height)
-        
-        let validX = max(0, min(imageSize.width - cropWidth, cropX))
-        let validY = max(0, min(imageSize.height - cropHeight, cropY))
-        
-        let paddedX = max(0, validX - (cropWidth * 0.1))
-        let paddedY = max(0, validY - (cropHeight * 0.1))
-        let paddedWidth = min(imageSize.width - paddedX, cropWidth * 1.2)
-        let paddedHeight = min(imageSize.height - paddedY, cropHeight * 1.2)
-        
-        let paddedCropRect = CGRect(
-            x: paddedX,
-            y: paddedY,
-            width: paddedWidth,
-            height: paddedHeight
+        let cropFrame = CGRect(
+            x: cropBoxX,
+            y: cropBoxY,
+            width: cropBoxWidth,
+            height: cropBoxHeight
         )
         
+        // Convert to image coordinates using proper transformation
+        let cropRectInImage = convertToImageCoordinates(
+            cropRect: cropFrame,
+            imageFrame: imageFrame,
+            imageSize: currentImage.size
+        )
+        
+        // Add padding for better OCR results
+        let padding = cropRectInImage.width * 0.1
+        let paddedRect = CGRect(
+            x: max(0, cropRectInImage.minX - padding),
+            y: max(0, cropRectInImage.minY - padding),
+            width: min(currentImage.size.width - (cropRectInImage.minX - padding), cropRectInImage.width + padding * 2),
+            height: min(currentImage.size.height - (cropRectInImage.minY - padding), cropRectInImage.height + padding * 2)
+        )
+        
+        // Perform the cropping
         if let cgImage = currentImage.cgImage,
-           let croppedCGImage = cgImage.cropping(to: paddedCropRect) {
-            let croppedImage = UIImage(cgImage: croppedCGImage)
+           let croppedCGImage = cgImage.cropping(to: paddedRect) {
+            let croppedImage = UIImage(cgImage: croppedCGImage, scale: currentImage.scale, orientation: .up)
             onCropComplete(croppedImage)
             isShowingCropView = false
         }
+    }
+    
+    // Calculate the frame for the image when scaled to fit
+    private func calculateImageFrame(image: UIImage, in size: CGSize) -> CGRect {
+        let imageAspect = image.size.width / image.size.height
+        let frameAspect = size.width / size.height
+        
+        if imageAspect > frameAspect {
+            // Image is wider than frame
+            let scaledHeight = size.width / imageAspect
+            return CGRect(
+                x: 0,
+                y: (size.height - scaledHeight) / 2,
+                width: size.width,
+                height: scaledHeight
+            )
+        } else {
+            // Image is taller than frame
+            let scaledWidth = size.height * imageAspect
+            return CGRect(
+                x: (size.width - scaledWidth) / 2,
+                y: 0,
+                width: scaledWidth,
+                height: size.height
+            )
+        }
+    }
+    
+    // Convert view coordinates to image coordinates
+    private func convertToImageCoordinates(cropRect: CGRect, imageFrame: CGRect, imageSize: CGSize) -> CGRect {
+        // Ensure crop rect is within image frame
+        let validCropRect = cropRect.intersection(imageFrame)
+        
+        // Handle empty intersection
+        if validCropRect.isEmpty {
+            return CGRect(x: 0, y: 0, width: imageSize.width, height: imageSize.height)
+        }
+        
+        // Calculate relative positions within the frame
+        let relX = (validCropRect.minX - imageFrame.minX) / imageFrame.width
+        let relY = (validCropRect.minY - imageFrame.minY) / imageFrame.height
+        let relWidth = validCropRect.width / imageFrame.width
+        let relHeight = validCropRect.height / imageFrame.height
+        
+        // Convert to image coordinates
+        return CGRect(
+            x: max(0, relX * imageSize.width),
+            y: max(0, relY * imageSize.height),
+            width: min(imageSize.width - (relX * imageSize.width), relWidth * imageSize.width),
+            height: min(imageSize.height - (relY * imageSize.height), relHeight * imageSize.height)
+        )
     }
 }
