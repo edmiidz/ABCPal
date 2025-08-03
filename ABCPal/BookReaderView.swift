@@ -177,12 +177,16 @@ struct BookReaderView: View {
                 .background(Color(UIColor.systemBackground))
             }
             
-            // Crop view overlay
-            if isShowingCropView, let image = capturedImage {
+        }
+        .sheet(isPresented: $isShowingCropView) {
+            if let image = capturedImage {
                 CropView(
                     image: .constant(image),
                     isShowingCropView: $isShowingCropView,
-                    onCropComplete: processCroppedImage
+                    onCropComplete: { croppedImage in
+                        // Process immediately after cropping
+                        processCroppedImage(croppedImage)
+                    }
                 )
             }
         }
@@ -223,19 +227,25 @@ struct BookReaderView: View {
     }
     
     func processCroppedImage(_ croppedImage: UIImage) {
+        print("Processing cropped image: \(croppedImage.size)")
         isProcessing = true
         
         // Enhance image for better OCR
         guard let enhancedImage = enhanceImageForOCR(croppedImage),
               let cgImage = enhancedImage.cgImage else {
+            print("Failed to enhance image")
             isProcessing = false
+            recognizedText = ""
             return
         }
+        
+        print("Enhanced image size: \(enhancedImage.size)")
         
         ocrService.performOCR(on: cgImage) { text in
             DispatchQueue.main.async {
                 self.recognizedText = text ?? ""
                 self.isProcessing = false
+                print("OCR completed. Text length: \(self.recognizedText.count)")
                 
                 // Auto-read if text was found
                 if !self.recognizedText.isEmpty {
@@ -399,12 +409,12 @@ struct CropView: View {
                     ZStack {
                         Rectangle()
                             .stroke(Color.white, lineWidth: 3)
-                            .frame(width: geometry.size.width * 0.6, height: geometry.size.height * 0.6)
+                            .frame(width: geometry.size.width * 0.6, height: geometry.size.width * 0.89)
                             
                         if showOCRGuide {
                             Rectangle()
                                 .stroke(Color.yellow, lineWidth: 2)
-                                .frame(width: geometry.size.width * 0.55, height: geometry.size.height * 0.55)
+                                .frame(width: geometry.size.width * 0.55, height: geometry.size.width * 0.84)
                         }
                     }
                     .background(Color.white.opacity(0.05))
@@ -501,11 +511,12 @@ struct CropView: View {
         let centerX = screenSize.width / 2
         let centerY = screenSize.height * 0.3
         
+        // Use the inner yellow guide dimensions (55% width, 84% of width for height)
         let cropWidth = screenSize.width * 0.55 * (imageSize.width / scaledImageSize.width)
-        let cropHeight = screenSize.height * 0.4 * 0.55 * (imageSize.height / scaledImageSize.height)
+        let cropHeight = screenSize.width * 0.84 * (imageSize.height / scaledImageSize.height)
         
         let cropX = ((centerX - (screenSize.width * 0.55 / 2)) - offset.width) * (imageSize.width / scaledImageSize.width)
-        let cropY = ((centerY - (screenSize.height * 0.4 * 0.55 / 2)) - offset.height) * (imageSize.height / scaledImageSize.height)
+        let cropY = ((centerY - (screenSize.width * 0.84 / 2)) - offset.height) * (imageSize.height / scaledImageSize.height)
         
         let validX = max(0, min(imageSize.width - cropWidth, cropX))
         let validY = max(0, min(imageSize.height - cropHeight, cropY))
