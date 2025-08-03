@@ -188,16 +188,33 @@ struct BookReaderView: View {
     func capturePhoto() {
         cameraService.takePhoto { image in
             if let image = image {
-                self.capturedImage = image
+                // Fix image orientation for better OCR results
+                self.capturedImage = self.fixImageOrientation(image)
                 self.isShowingCropView = true
             }
         }
     }
     
+    // Fix image orientation to ensure OCR works correctly
+    private func fixImageOrientation(_ image: UIImage) -> UIImage {
+        if image.imageOrientation == .up {
+            return image
+        }
+        
+        UIGraphicsBeginImageContextWithOptions(image.size, false, image.scale)
+        image.draw(in: CGRect(origin: .zero, size: image.size))
+        let normalizedImage = UIGraphicsGetImageFromCurrentImageContext()!
+        UIGraphicsEndImageContext()
+        
+        return normalizedImage
+    }
+    
     func processCroppedImage(_ croppedImage: UIImage) {
         isProcessing = true
         
-        guard let cgImage = croppedImage.cgImage else {
+        // Enhance image for better OCR
+        guard let enhancedImage = enhanceImageForOCR(croppedImage),
+              let cgImage = enhancedImage.cgImage else {
             isProcessing = false
             return
         }
@@ -213,6 +230,26 @@ struct BookReaderView: View {
                 }
             }
         }
+    }
+    
+    // Enhance image contrast and sharpness for better OCR
+    private func enhanceImageForOCR(_ image: UIImage) -> UIImage? {
+        guard let ciImage = CIImage(image: image) else { return image }
+        
+        let filter = CIFilter(name: "CIColorControls")
+        filter?.setValue(ciImage, forKey: kCIInputImageKey)
+        filter?.setValue(1.1, forKey: kCIInputContrastKey) // Increase contrast
+        filter?.setValue(0.0, forKey: kCIInputSaturationKey) // Convert to grayscale
+        filter?.setValue(0.1, forKey: kCIInputBrightnessKey) // Slightly increase brightness
+        
+        if let outputImage = filter?.outputImage {
+            let context = CIContext()
+            if let cgImage = context.createCGImage(outputImage, from: outputImage.extent) {
+                return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
+            }
+        }
+        
+        return image
     }
     
     func readTextAloud() {
