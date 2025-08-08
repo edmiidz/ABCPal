@@ -11,6 +11,12 @@ import AVFoundation
 struct VocabQuizView: View {
     var language: String
     var goBack: () -> Void
+    
+    init(language: String, goBack: @escaping () -> Void) {
+        self.language = language
+        self.goBack = goBack
+        print("🎮 VocabQuizView initialized with language: \(language)")
+    }
 
     @State private var correctWord = ""
     @State private var options: [String] = []
@@ -26,6 +32,12 @@ struct VocabQuizView: View {
     @State private var isCompleted = false
     @State private var allWords: [String] = []
     @State private var isFirstAttempt = true
+    @State private var isAutoPlayMode = false
+    @State private var inactivityTimer: Timer? = nil
+    @State private var autoPlayTimer: Timer? = nil
+    @State private var hasSpelledWord = false
+    @State private var isWaitingForNext = false
+    @State private var autoPlayDelayTimer: Timer? = nil
     
     @StateObject private var vocabManager = VocabularyManager.shared
     
@@ -130,9 +142,14 @@ struct VocabQuizView: View {
                                                         Text("🤔")
                                                             .font(.title2)
                                                     }
+                                                    // Show pointing emoji in autoplay mode for correct answer
+                                                    if isAutoPlayMode && options[index].lowercased() == correctWord.lowercased() {
+                                                        Text("👈")
+                                                            .font(.title2)
+                                                    }
                                                 }
                                                 .frame(width: 200, height: 70)
-                                                .background(Color.purple.opacity(0.2))
+                                                .background(isWaitingForNext && isAutoPlayMode ? Color.yellow.opacity(0.5) : Color.purple.opacity(0.2))
                                                 .cornerRadius(20)
                                             }
                                             .disabled(areButtonsDisabled)
@@ -160,6 +177,21 @@ struct VocabQuizView: View {
                                 .background(Color.gray.opacity(0.2))
                                 .cornerRadius(8)
                             }
+                            
+                            // AutoPlay indicator
+                            if isAutoPlayMode {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "play.circle.fill")
+                                        .foregroundColor(.green)
+                                    Text("AutoPlay")
+                                        .font(.caption)
+                                        .foregroundColor(.green)
+                                }
+                                .padding(6)
+                                .background(Color.green.opacity(0.1))
+                                .cornerRadius(6)
+                            }
+                            
                             Spacer()
                         }
                         .padding(.horizontal)
@@ -199,6 +231,21 @@ struct VocabQuizView: View {
                                     .background(Color.gray.opacity(0.2))
                                     .cornerRadius(8)
                                 }
+                                
+                                // AutoPlay indicator
+                                if isAutoPlayMode {
+                                    HStack(spacing: 5) {
+                                        Image(systemName: "play.circle.fill")
+                                            .foregroundColor(.green)
+                                        Text("AutoPlay")
+                                            .font(.caption)
+                                            .foregroundColor(.green)
+                                    }
+                                    .padding(6)
+                                    .background(Color.green.opacity(0.1))
+                                    .cornerRadius(6)
+                                }
+                                
                                 Spacer()
                             }
                             .padding(.top)
@@ -243,6 +290,21 @@ struct VocabQuizView: View {
                                     .background(Color.gray.opacity(0.2))
                                     .cornerRadius(8)
                                 }
+                                
+                                // AutoPlay indicator
+                                if isAutoPlayMode {
+                                    HStack(spacing: 5) {
+                                        Image(systemName: "play.circle.fill")
+                                            .foregroundColor(.green)
+                                        Text("AutoPlay")
+                                            .font(.caption)
+                                            .foregroundColor(.green)
+                                    }
+                                    .padding(6)
+                                    .background(Color.green.opacity(0.1))
+                                    .cornerRadius(6)
+                                }
+                                
                                 Spacer()
                             }
                             .padding(.top)
@@ -286,9 +348,14 @@ struct VocabQuizView: View {
                                                 Text("🤔")
                                                     .font(.title2)
                                             }
+                                            // Show pointing emoji in autoplay mode for correct answer
+                                            if isAutoPlayMode && word.lowercased() == correctWord.lowercased() {
+                                                Text("👈")
+                                                    .font(.title2)
+                                            }
                                         }
                                         .frame(minWidth: 150, minHeight: 60)
-                                        .background(Color.purple.opacity(0.2))
+                                        .background(isWaitingForNext && isAutoPlayMode ? Color.yellow.opacity(0.5) : Color.purple.opacity(0.2))
                                         .cornerRadius(12)
                                     }
                                     .disabled(areButtonsDisabled)
@@ -308,6 +375,7 @@ struct VocabQuizView: View {
             }
         }
         .onAppear {
+            print("📱 VocabQuizView appeared")
             loadWords()
             startQuizFlow()
             updateLayoutForCurrentOrientation()
@@ -317,12 +385,18 @@ struct VocabQuizView: View {
             }
         }
         .onDisappear {
+            print("📱 VocabQuizView disappearing")
             NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
+            // Clean up timers
+            inactivityTimer?.invalidate()
+            autoPlayTimer?.invalidate()
+            autoPlayDelayTimer?.invalidate()
         }
     }
     
     func loadWords() {
         allWords = language == "en-US" ? vocabManager.englishWords : vocabManager.frenchWords
+        print("📚 VocabQuiz: Loaded \(allWords.count) total words for language: \(language)")
     }
     
     func updateLayoutForCurrentOrientation() {
@@ -336,9 +410,15 @@ struct VocabQuizView: View {
     }
 
     func checkAnswer(_ selected: String) {
+        print("✅ VocabQuiz: User selected '\(selected)', correct word is '\(correctWord)'")
+        // User interaction - exit autoplay mode and reset timers
+        stopAutoPlay()
+        resetInactivityTimer()
+        
         areButtonsDisabled = true
         // Compare lowercase versions for proper noun support
         if selected.lowercased() == correctWord.lowercased() {
+            print("✅ VocabQuiz: Correct answer!")
             // Only increment mastery if this is the first attempt
             if isFirstAttempt {
                 let currentMastery = vocabManager.getMastery(for: correctWord, language: language)
@@ -367,6 +447,7 @@ struct VocabQuizView: View {
                 startQuizFlow()
             }
         } else {
+            print("❌ VocabQuiz: Wrong answer")
             thinkingWord = selected
             isFirstAttempt = false  // Mark that first attempt failed
             
@@ -391,6 +472,7 @@ struct VocabQuizView: View {
 
     func speak(text: String) {
         guard !text.isEmpty else { return }
+        print("🔊 VocabQuiz: Speaking text '\(text)'")
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = AVSpeechSynthesisVoice(language: language)
         utterance.rate = 0.4
@@ -398,13 +480,39 @@ struct VocabQuizView: View {
     }
 
     func speak(word: String) {
+        print("🔊 VocabQuiz: Speaking word '\(word)'")
         let utterance = AVSpeechUtterance(string: word)
         utterance.voice = AVSpeechSynthesisVoice(language: language)
         utterance.rate = 0.3
         synthesizer.speak(utterance)
     }
+    
+    func spellWord(_ word: String) {
+        // Spell out the word letter by letter with pauses
+        let letters = word.map { String($0) }
+        
+        // Speak each letter individually with delays
+        for (index, letter) in letters.enumerated() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(index) * 0.4) {
+                // Continue spelling even if AutoPlay stops (don't check isAutoPlayMode)
+                let utterance = AVSpeechUtterance(string: String(letter))
+                utterance.voice = AVSpeechSynthesisVoice(language: language)
+                utterance.rate = 0.15  // Even slower for spelling (25% slower than before)
+                utterance.preUtteranceDelay = 0.04  // 40ms pause before each letter
+                synthesizer.speak(utterance)
+            }
+        }
+    }
 
     func startQuizFlow() {
+        // Don't stop autoplay if we're already in autoplay mode (continuing to next question)
+        let wasInAutoPlay = isAutoPlayMode
+        print("🎯 VocabQuiz: startQuizFlow called, wasInAutoPlay = \(wasInAutoPlay)")
+        if !wasInAutoPlay {
+            stopAutoPlay()
+        }
+        hasSpelledWord = false
+        
         guard !activeWords.isEmpty else {
             isCompleted = true
             
@@ -457,12 +565,116 @@ struct VocabQuizView: View {
                 speak(word: correctWord)
                 isReady = true
             }
-        } else {
+        } else if !wasInAutoPlay {
+            // Only speak the word if we're NOT in AutoPlay (AutoPlay will handle speaking)
             speak(word: correctWord)
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 isReady = true
             }
+        } else {
+            // In AutoPlay mode - don't speak here, continueAutoPlay will handle it
+            isReady = true
         }
+        
+        // Handle autoplay or start inactivity timer
+        if wasInAutoPlay {
+            print("🎯 VocabQuiz: Continuing AutoPlay cycle")
+            // Continue autoplay after current word is shown
+            continueAutoPlay()
+        } else {
+            print("🎯 VocabQuiz: Starting 30 second inactivity timer")
+            // Start inactivity timer for autoplay
+            resetInactivityTimer()
+        }
+    }
+    
+    // MARK: - AutoPlay Functions
+    
+    func resetInactivityTimer() {
+        inactivityTimer?.invalidate()
+        print("⏰ VocabQuiz: Setting up 30 second inactivity timer")
+        inactivityTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: false) { _ in
+            print("⏰ VocabQuiz: Inactivity timer fired! Checking conditions...")
+            print("   areButtonsDisabled: \(self.areButtonsDisabled)")
+            print("   isCompleted: \(self.isCompleted)")
+            print("   isReady: \(self.isReady)")
+            print("   options.isEmpty: \(self.options.isEmpty)")
+            if !self.areButtonsDisabled && !self.isCompleted && self.isReady && !self.options.isEmpty {
+                print("✅ VocabQuiz: All conditions met, starting AutoPlay")
+                self.startAutoPlay()
+            } else {
+                print("❌ VocabQuiz: Conditions not met for AutoPlay")
+            }
+        }
+    }
+    
+    func startAutoPlay() {
+        print("🎯 VocabQuiz AutoPlay: Starting for word '\(correctWord)'")
+        print("🔊 VocabQuiz: Current word is: \(correctWord)")
+        isAutoPlayMode = true
+        hasSpelledWord = false
+        
+        // Start the autoplay sequence
+        continueAutoPlay()
+    }
+    
+    func continueAutoPlay() {
+        guard isAutoPlayMode else { 
+            print("🎯 VocabQuiz: Not in autoplay mode")
+            return 
+        }
+        guard !isWaitingForNext else { 
+            print("🎯 VocabQuiz: Already waiting for next")
+            return 
+        }
+        
+        print("🎯 VocabQuiz: AutoPlay cycle for word '\(correctWord)'")
+        
+        // Cancel any existing timer
+        autoPlayDelayTimer?.invalidate()
+        
+        // Speak the word immediately
+        speak(word: correctWord)
+        
+        // Wait a bit for the word to be spoken, then spell it
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            if self.isAutoPlayMode {
+                print("🎯 VocabQuiz: Now spelling '\(self.correctWord)'")
+                self.spellWord(self.correctWord)
+                
+                // Calculate time needed for spelling (each letter takes 0.4s + buffer for speech)
+                let spellingDuration = Double(self.correctWord.count) * 0.4 + 0.5
+                print("🎯 VocabQuiz: Spelling will take \(spellingDuration) seconds")
+                
+                // Mark as waiting AFTER spelling completes to show visual indicator
+                DispatchQueue.main.asyncAfter(deadline: .now() + spellingDuration) {
+                    print("🎯 VocabQuiz: Spelling complete")
+                    self.isWaitingForNext = true  // Show yellow buttons during pause
+                    print("🟡 VocabQuiz: Buttons should now be YELLOW for 2-second pause")
+                    print("⏱️ VocabQuiz: Starting 2-second SILENT pause at \(Date())")
+                    
+                    // Use a Timer for the actual 2-second SILENT delay
+                    self.autoPlayDelayTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
+                        print("⏱️ VocabQuiz: 2-second pause complete at \(Date())")
+                        print("🟢 VocabQuiz: Moving to next word now")
+                        self.isWaitingForNext = false
+                        if self.isAutoPlayMode {
+                            self.startQuizFlow()
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    func stopAutoPlay() {
+        print("🛑 VocabQuiz: Stopping AutoPlay")
+        isAutoPlayMode = false
+        isWaitingForNext = false
+        autoPlayTimer?.invalidate()
+        autoPlayTimer = nil
+        autoPlayDelayTimer?.invalidate()
+        autoPlayDelayTimer = nil
     }
 }

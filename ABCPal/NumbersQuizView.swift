@@ -23,6 +23,9 @@ struct NumbersQuizView: View {
     @State private var isFirstAttempt = true
     @State private var useLandscapeLayout = false
     @State private var mastery: [Int: Int] = [:]
+    @State private var isAutoPlayMode = false
+    @State private var inactivityTimer: Timer? = nil
+    @State private var autoPlayTimer: Timer? = nil
     
     let synthesizer = AVSpeechSynthesizer()
     
@@ -88,18 +91,36 @@ struct NumbersQuizView: View {
             } else if useLandscapeLayout && geometry.size.width > geometry.size.height {
                 HStack {
                     VStack {
-                        Button(action: {
-                            synthesizer.stopSpeaking(at: .immediate)
-                            goBack()
-                        }) {
-                            HStack {
-                                Image(systemName: "arrow.backward")
-                                Text(language == "fr-CA" ? "Retour" : "Back")
+                        HStack {
+                            Button(action: {
+                                synthesizer.stopSpeaking(at: .immediate)
+                                goBack()
+                            }) {
+                                HStack {
+                                    Image(systemName: "arrow.backward")
+                                    Text(language == "fr-CA" ? "Retour" : "Back")
+                                }
+                                .padding(8)
+                                .foregroundColor(.blue)
+                                .background(Color.gray.opacity(0.2))
+                                .cornerRadius(8)
                             }
-                            .padding(8)
-                            .foregroundColor(.blue)
-                            .background(Color.gray.opacity(0.2))
-                            .cornerRadius(8)
+                            
+                            // AutoPlay indicator
+                            if isAutoPlayMode {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "play.circle.fill")
+                                        .foregroundColor(.green)
+                                    Text("AutoPlay")
+                                        .font(.caption)
+                                        .foregroundColor(.green)
+                                }
+                                .padding(6)
+                                .background(Color.green.opacity(0.1))
+                                .cornerRadius(6)
+                            }
+                            
+                            Spacer()
                         }
                         .padding(.top)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -159,6 +180,11 @@ struct NumbersQuizView: View {
                                                         Text("🤔")
                                                             .font(.title2)
                                                     }
+                                                    // Show pointing emoji in autoplay mode for correct answer
+                                                    if isAutoPlayMode && options[index] == currentNumber {
+                                                        Text("👈")
+                                                            .font(.title2)
+                                                    }
                                                 }
                                                 .frame(minWidth: 120, minHeight: 50)
                                                 .background(Color.gray.opacity(0.15))
@@ -193,6 +219,21 @@ struct NumbersQuizView: View {
                             .background(Color.gray.opacity(0.2))
                             .cornerRadius(8)
                         }
+                        
+                        // AutoPlay indicator
+                        if isAutoPlayMode {
+                            HStack(spacing: 5) {
+                                Image(systemName: "play.circle.fill")
+                                    .foregroundColor(.green)
+                                Text("AutoPlay")
+                                    .font(.caption)
+                                    .foregroundColor(.green)
+                            }
+                            .padding(6)
+                            .background(Color.green.opacity(0.1))
+                            .cornerRadius(6)
+                        }
+                        
                         Spacer()
                     }
                     .padding(.top)
@@ -244,6 +285,11 @@ struct NumbersQuizView: View {
                                             Text("🤔")
                                                 .font(.title2)
                                         }
+                                        // Show pointing emoji in autoplay mode for correct answer
+                                        if isAutoPlayMode && options[index] == currentNumber {
+                                            Text("👈")
+                                                .font(.title2)
+                                        }
                                     }
                                     .frame(minWidth: 200, minHeight: 50)
                                     .background(Color.gray.opacity(0.15))
@@ -276,6 +322,10 @@ struct NumbersQuizView: View {
     }
     
     func checkAnswer(_ selected: Int) {
+        // User interaction - exit autoplay mode and reset timers
+        stopAutoPlay()
+        resetInactivityTimer()
+        
         areButtonsDisabled = true
         
         if selected == currentNumber {
@@ -343,6 +393,12 @@ struct NumbersQuizView: View {
     }
     
     func startQuizFlow() {
+        // Don't stop autoplay if we're already in autoplay mode (continuing to next question)
+        let wasInAutoPlay = isAutoPlayMode
+        if !wasInAutoPlay {
+            stopAutoPlay()
+        }
+        
         // Get all numbers that haven't been mastered twice
         let unmasteredNumbers = (1...100).filter { (mastery[$0] ?? 0) < 2 }
         
@@ -379,6 +435,19 @@ struct NumbersQuizView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             speak(number: currentNumber)
         }
+        
+        // Handle autoplay or start inactivity timer
+        if wasInAutoPlay {
+            // Continue autoplay after current number is shown
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                if isAutoPlayMode {
+                    startQuizFlow()
+                }
+            }
+        } else {
+            // Start inactivity timer for autoplay
+            resetInactivityTimer()
+        }
     }
     
     func generateOptions() {
@@ -401,5 +470,36 @@ struct NumbersQuizView: View {
         }
         
         options = newOptions.shuffled()
+    }
+    
+    // MARK: - AutoPlay Functions
+    
+    func resetInactivityTimer() {
+        inactivityTimer?.invalidate()
+        inactivityTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: false) { _ in
+            if !areButtonsDisabled && !isCompleted && !options.isEmpty {
+                startAutoPlay()
+            }
+        }
+    }
+    
+    func startAutoPlay() {
+        isAutoPlayMode = true
+        
+        // Repeat the number sound
+        speak(number: currentNumber)
+        
+        // Move to next number after a delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            if isAutoPlayMode {
+                startQuizFlow()
+            }
+        }
+    }
+    
+    func stopAutoPlay() {
+        isAutoPlayMode = false
+        autoPlayTimer?.invalidate()
+        autoPlayTimer = nil
     }
 }

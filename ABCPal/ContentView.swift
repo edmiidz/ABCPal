@@ -25,12 +25,18 @@ struct ContentView: View {
     var body: some View {
         if showSplash {
             SplashView(isActive: $showSplash)
+                .onAppear {
+                    print("📱 ContentView: Showing splash screen")
+                }
                 .onDisappear {
+                    print("📱 ContentView: Splash screen disappearing")
                     // Check if userName is already stored
                     if let savedName = UserDefaults.standard.string(forKey: userNameKey), !savedName.isEmpty {
                         userName = savedName
+                        print("📱 ContentView: Found saved username: \(savedName)")
                     } else {
                         showNameInput = true
+                        print("📱 ContentView: No saved username, showing name input")
                     }
                 }
         } else if showNameInput {

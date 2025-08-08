@@ -12,6 +12,13 @@ struct QuizView: View {
     var language: String
     var letterCase: String
     var goBack: () -> Void
+    
+    init(language: String, letterCase: String, goBack: @escaping () -> Void) {
+        self.language = language
+        self.letterCase = letterCase
+        self.goBack = goBack
+        print("🎮 QuizView initialized with language: \(language), case: \(letterCase)")
+    }
 
     @State private var correctLetter = ""
     @State private var options: [String] = []
@@ -27,6 +34,14 @@ struct QuizView: View {
     @State private var thinkingLetter: String? = nil
     @State private var isCompleted = false
     @State private var isFirstAttempt = true
+    @State private var isAutoPlayMode = false
+    @State private var inactivityTimer: Timer? = nil
+    @State private var autoPlayTimer: Timer? = nil
+    @State private var hasSpokenCorrectLetter = false
+    @State private var autoPlayCountdown = 0
+    @State private var isWaitingForNext = false
+    @State private var autoPlayDelayTimer: Timer? = nil
+    @State private var debugLog: [String] = []
     
     // Get the user name from UserDefaults
     var userName: String {
@@ -55,6 +70,7 @@ struct QuizView: View {
             if useLandscapeLayout {
                 // Landscape layout as default
                 ZStack {
+                    Color.red.opacity(0.3) // TEST: Make background red to confirm changes are deploying
                     // Main content area
                     if isCompleted {
                         // Celebration view when completed
@@ -147,9 +163,14 @@ struct QuizView: View {
                                                         Text("🤔")
                                                             .font(.largeTitle)
                                                     }
+                                                    // Show pointing emoji in autoplay mode for correct answer
+                                                    if isAutoPlayMode && options[index] == correctLetter {
+                                                        Text("👈")
+                                                            .font(.largeTitle)
+                                                    }
                                                 }
                                                 .frame(width: 180, height: 70)
-                                                .background(Color.blue.opacity(0.2))
+                                                .background(isWaitingForNext && isAutoPlayMode ? Color.yellow.opacity(0.3) : Color.blue.opacity(0.2))
                                                 .cornerRadius(20)
                                             }
                                             .disabled(areButtonsDisabled)
@@ -177,6 +198,25 @@ struct QuizView: View {
                                 .background(Color.gray.opacity(0.2))
                                 .cornerRadius(8)
                             }
+                            
+                            // AutoPlay indicator
+                            if isAutoPlayMode {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "play.circle.fill")
+                                        .foregroundColor(.green)
+                                    Text("AutoPlay")
+                                        .font(.caption)
+                                        .foregroundColor(.green)
+                                    if isWaitingForNext {
+                                        ProgressView()
+                                            .scaleEffect(0.7)
+                                    }
+                                }
+                                .padding(6)
+                                .background(Color.green.opacity(0.1))
+                                .cornerRadius(6)
+                            }
+                            
                             Spacer()
                         }
                         .padding(.horizontal)
@@ -196,6 +236,27 @@ struct QuizView: View {
                                 .animation(.easeInOut(duration: 0.5), value: feedbackOpacity)
                         }
                     }
+                    
+                    // Debug panel at top center - more visible
+                    VStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("DEBUG LOG")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                            ForEach(debugLog.suffix(5), id: \.self) { log in
+                                Text(log)
+                                    .font(.caption)
+                                    .foregroundColor(.yellow)
+                                    .lineLimit(1)
+                            }
+                        }
+                        .padding(10)
+                        .background(Color.red)
+                        .cornerRadius(8)
+                        Spacer()
+                    }
+                    .padding(.top, 50)
                 }
             } else {
                 // Portrait layout - only used when definitively in portrait
@@ -265,6 +326,25 @@ struct QuizView: View {
                                     .background(Color.gray.opacity(0.2))
                                     .cornerRadius(8)
                                 }
+                                
+                                // AutoPlay indicator
+                                if isAutoPlayMode {
+                                    HStack(spacing: 5) {
+                                        Image(systemName: "play.circle.fill")
+                                            .foregroundColor(.green)
+                                        Text("AutoPlay")
+                                            .font(.caption)
+                                            .foregroundColor(.green)
+                                        if autoPlayCountdown > 0 {
+                                            Text("(\(autoPlayCountdown))")
+                                                .font(.caption)
+                                                .foregroundColor(.green)
+                                        }
+                                    }
+                                    .padding(6)
+                                    .background(Color.green.opacity(0.1))
+                                    .cornerRadius(6)
+                                }
 
                                 Spacer()
                             }
@@ -316,6 +396,11 @@ struct QuizView: View {
                                                 Text("🤔")
                                                     .font(.largeTitle)
                                             }
+                                            // Show pointing emoji in autoplay mode for correct answer
+                                            if isAutoPlayMode && letter == correctLetter {
+                                                Text("👈")
+                                                    .font(.largeTitle)
+                                            }
                                         }
                                         .frame(minWidth: 150, minHeight: 60)
                                         .background(Color.blue.opacity(0.2))
@@ -334,10 +419,33 @@ struct QuizView: View {
                         }
                         .padding()
                     }
+                    
+                    // Debug panel for portrait mode
+                    VStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("DEBUG LOG")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                            ForEach(debugLog.suffix(5), id: \.self) { log in
+                                Text(log)
+                                    .font(.caption)
+                                    .foregroundColor(.yellow)
+                                    .lineLimit(1)
+                            }
+                        }
+                        .padding(10)
+                        .background(Color.red)
+                        .cornerRadius(8)
+                        Spacer()
+                    }
+                    .padding(.top, 100)
                 }
             }
         }
+        .background(isWaitingForNext ? Color.green.opacity(0.2) : Color.clear)
         .onAppear {
+            addDebugLog("Quiz started")
             startQuizFlow()
             
             // Start with landscape layout by default
@@ -351,6 +459,9 @@ struct QuizView: View {
         .onDisappear {
             // Remove observer when view disappears
             NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
+            // Clean up timers
+            inactivityTimer?.invalidate()
+            autoPlayTimer?.invalidate()
         }
     }
     
@@ -369,6 +480,10 @@ struct QuizView: View {
     }
 
     func checkAnswer(_ selected: String) {
+        // User interaction - exit autoplay mode and reset timers
+        stopAutoPlay()
+        resetInactivityTimer()
+        
         areButtonsDisabled = true
         if selected == correctLetter {
             // Only increment mastery if this is the first attempt
@@ -441,6 +556,13 @@ struct QuizView: View {
     }
 
     func startQuizFlow() {
+        // Don't stop autoplay if we're already in autoplay mode (continuing to next question)
+        let wasInAutoPlay = isAutoPlayMode
+        print("📝 startQuizFlow called, wasInAutoPlay = \(wasInAutoPlay)")
+        if !wasInAutoPlay {
+            stopAutoPlay()
+        }
+        
         guard !activeLetters.isEmpty else {
             // Set completed state to true - this is critical!
             isCompleted = true
@@ -509,5 +631,99 @@ struct QuizView: View {
                 isReady = true
             }
         }
+        
+        // Handle autoplay or start inactivity timer
+        if wasInAutoPlay {
+            addDebugLog("Continue cycle")
+            // In AutoPlay mode - continue the cycle
+            continueAutoPlay()
+        } else {
+            addDebugLog("Init timer 30s")
+            // Start inactivity timer for autoplay
+            resetInactivityTimer()
+        }
+    }
+    
+    // MARK: - AutoPlay Functions
+    
+    func addDebugLog(_ message: String) {
+        let timestamp = Date().timeIntervalSince1970
+        let shortTime = String(format: "%.1f", timestamp).suffix(5)
+        debugLog.append("\(shortTime): \(message)")
+        if debugLog.count > 10 {
+            debugLog.removeFirst()
+        }
+        print(message) // Also print to console
+    }
+    
+    func resetInactivityTimer() {
+        inactivityTimer?.invalidate()
+        print("⏰ Setting up 30 second inactivity timer")
+        inactivityTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: false) { _ in
+            print("⏰ Inactivity timer fired! Checking conditions...")
+            print("   areButtonsDisabled: \(self.areButtonsDisabled)")
+            print("   isCompleted: \(self.isCompleted)")
+            print("   isReady: \(self.isReady)")
+            print("   options.isEmpty: \(self.options.isEmpty)")
+            if !self.areButtonsDisabled && !self.isCompleted && self.isReady && !self.options.isEmpty {
+                print("✅ All conditions met, starting AutoPlay")
+                self.startAutoPlay()
+            } else {
+                print("❌ Conditions not met for AutoPlay")
+            }
+        }
+    }
+    
+    func startAutoPlay() {
+        addDebugLog("AutoPlay START: \(correctLetter)")
+        isAutoPlayMode = true
+        hasSpokenCorrectLetter = false
+        
+        // Start the continuous autoplay cycle
+        continueAutoPlay()
+    }
+    
+    func continueAutoPlay() {
+        guard isAutoPlayMode else { 
+            addDebugLog("AutoPlay: Not active")
+            return 
+        }
+        guard !isWaitingForNext else { 
+            addDebugLog("AutoPlay: Already waiting")
+            return 
+        }
+        
+        addDebugLog("Speaking: \(correctLetter)")
+        isWaitingForNext = true
+        
+        // Speak the current letter
+        speak(letter: correctLetter)
+        
+        // Cancel any existing timer
+        autoPlayDelayTimer?.invalidate()
+        
+        // Add a small delay to let the audio play, THEN start the 2-second timer
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.addDebugLog("Timer: 2s started after speech")
+            // Use a Timer for the actual 2-second delay
+            self.autoPlayDelayTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
+                self.addDebugLog("Timer: FIRED!")
+                self.isWaitingForNext = false
+                if self.isAutoPlayMode {
+                    self.startQuizFlow()
+                }
+            }
+        }
+    }
+    
+    func stopAutoPlay() {
+        print("🛑 Stopping AutoPlay")
+        isAutoPlayMode = false
+        isWaitingForNext = false
+        autoPlayCountdown = 0
+        autoPlayTimer?.invalidate()
+        autoPlayTimer = nil
+        autoPlayDelayTimer?.invalidate()
+        autoPlayDelayTimer = nil
     }
 }
