@@ -108,6 +108,9 @@ struct QuizView: View {
                                 if !isCompleted {
                                     // Prompt with speaker icon
                                     Button(action: {
+                                        // User interaction - exit autoplay and reset timer
+                                        stopAutoPlay()
+                                        resetInactivityTimer()
                                         synthesizer.stopSpeaking(at: .immediate)
                                         speak(text: promptText)
                                     }) {
@@ -125,6 +128,9 @@ struct QuizView: View {
                                 if !isCompleted {
                                     // Speaker button
                                     Button(action: {
+                                        // User interaction - exit autoplay and reset timer
+                                        stopAutoPlay()
+                                        resetInactivityTimer()
                                         synthesizer.stopSpeaking(at: .immediate)
                                         speak(letter: correctLetter)
                                     }) {
@@ -186,6 +192,8 @@ struct QuizView: View {
                     VStack {
                         HStack {
                             Button(action: {
+                                // User interaction - stop autoplay before going back
+                                stopAutoPlay()
                                 synthesizer.stopSpeaking(at: .immediate)
                                 goBack()
                             }) {
@@ -353,6 +361,9 @@ struct QuizView: View {
                             // Only show prompt if not completed
                             if !isCompleted {
                                 Button(action: {
+                                    // User interaction - exit autoplay and reset timer
+                                    stopAutoPlay()
+                                    resetInactivityTimer()
                                     synthesizer.stopSpeaking(at: .immediate)
                                     speak(text: promptText)
                                 }) {
@@ -370,6 +381,9 @@ struct QuizView: View {
                             // Only show speaker button if not completed
                             if !isCompleted {
                                 Button(action: {
+                                    // User interaction - exit autoplay and reset timer
+                                    stopAutoPlay()
+                                    resetInactivityTimer()
                                     synthesizer.stopSpeaking(at: .immediate)
                                     speak(letter: correctLetter)
                                 }) {

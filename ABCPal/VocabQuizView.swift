@@ -94,6 +94,9 @@ struct VocabQuizView: View {
                             VStack(alignment: .leading, spacing: 30) {
                                 if !isCompleted {
                                     Button(action: {
+                                        // User interaction - exit autoplay and reset timer
+                                        stopAutoPlay()
+                                        resetInactivityTimer()
                                         synthesizer.stopSpeaking(at: .immediate)
                                         speak(text: promptText)
                                     }) {
@@ -107,6 +110,9 @@ struct VocabQuizView: View {
                                     .padding(.bottom, 20)
                                     
                                     Button(action: {
+                                        // User interaction - exit autoplay and reset timer
+                                        stopAutoPlay()
+                                        resetInactivityTimer()
                                         synthesizer.stopSpeaking(at: .immediate)
                                         speak(word: correctWord)
                                     }) {
@@ -165,6 +171,8 @@ struct VocabQuizView: View {
                     VStack {
                         HStack {
                             Button(action: {
+                                // User interaction - stop autoplay before going back
+                                stopAutoPlay()
                                 synthesizer.stopSpeaking(at: .immediate)
                                 goBack()
                             }) {
@@ -219,6 +227,8 @@ struct VocabQuizView: View {
                         VStack(spacing: 20) {
                             HStack {
                                 Button(action: {
+                                    // User interaction - stop autoplay before going back
+                                    stopAutoPlay()
                                     synthesizer.stopSpeaking(at: .immediate)
                                     goBack()
                                 }) {
@@ -278,6 +288,8 @@ struct VocabQuizView: View {
                         VStack(spacing: 30) {
                             HStack {
                                 Button(action: {
+                                    // User interaction - stop autoplay before going back
+                                    stopAutoPlay()
                                     synthesizer.stopSpeaking(at: .immediate)
                                     goBack()
                                 }) {
@@ -311,6 +323,9 @@ struct VocabQuizView: View {
                             
                             if !isCompleted {
                                 Button(action: {
+                                    // User interaction - exit autoplay and reset timer
+                                    stopAutoPlay()
+                                    resetInactivityTimer()
                                     synthesizer.stopSpeaking(at: .immediate)
                                     speak(text: promptText)
                                 }) {
@@ -325,6 +340,9 @@ struct VocabQuizView: View {
                                 .buttonStyle(PlainButtonStyle())
                                 
                                 Button(action: {
+                                    // User interaction - exit autoplay and reset timer
+                                    stopAutoPlay()
+                                    resetInactivityTimer()
                                     synthesizer.stopSpeaking(at: .immediate)
                                     speak(word: correctWord)
                                 }) {
