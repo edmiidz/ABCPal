@@ -26,6 +26,7 @@ struct NumbersQuizView: View {
     @State private var isAutoPlayMode = false
     @State private var inactivityTimer: Timer? = nil
     @State private var autoPlayTimer: Timer? = nil
+    @State private var isWaitingForNext = false
     
     let synthesizer = AVSpeechSynthesizer()
     
@@ -439,9 +440,12 @@ struct NumbersQuizView: View {
         // Handle autoplay or start inactivity timer
         if wasInAutoPlay {
             // Continue autoplay after current number is shown
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                if isAutoPlayMode {
-                    startQuizFlow()
+            isWaitingForNext = true
+            autoPlayTimer?.invalidate()
+            autoPlayTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
+                self.isWaitingForNext = false
+                if self.isAutoPlayMode {
+                    self.startQuizFlow()
                 }
             }
         } else {
@@ -489,16 +493,22 @@ struct NumbersQuizView: View {
         // Repeat the number sound
         speak(number: currentNumber)
         
-        // Move to next number after a delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            if isAutoPlayMode {
-                startQuizFlow()
+        // Set waiting flag to show visual indicator
+        isWaitingForNext = true
+        
+        // Move to next number after a 5-second delay
+        autoPlayTimer?.invalidate()
+        autoPlayTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
+            self.isWaitingForNext = false
+            if self.isAutoPlayMode {
+                self.startQuizFlow()
             }
         }
     }
     
     func stopAutoPlay() {
         isAutoPlayMode = false
+        isWaitingForNext = false
         autoPlayTimer?.invalidate()
         autoPlayTimer = nil
     }

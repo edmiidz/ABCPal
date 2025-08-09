@@ -702,11 +702,11 @@ struct QuizView: View {
         // Cancel any existing timer
         autoPlayDelayTimer?.invalidate()
         
-        // Add a small delay to let the audio play, THEN start the 2-second timer
+        // Add a small delay to let the audio play, THEN start the 5-second timer
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.addDebugLog("Timer: 2s started after speech")
-            // Use a Timer for the actual 2-second delay
-            self.autoPlayDelayTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
+            self.addDebugLog("Timer: 5s started after speech")
+            // Use a Timer for the actual 5-second delay
+            self.autoPlayDelayTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
                 self.addDebugLog("Timer: FIRED!")
                 self.isWaitingForNext = false
                 if self.isAutoPlayMode {

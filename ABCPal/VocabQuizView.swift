@@ -651,12 +651,12 @@ struct VocabQuizView: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + spellingDuration) {
                     print("🎯 VocabQuiz: Spelling complete")
                     self.isWaitingForNext = true  // Show yellow buttons during pause
-                    print("🟡 VocabQuiz: Buttons should now be YELLOW for 2-second pause")
-                    print("⏱️ VocabQuiz: Starting 2-second SILENT pause at \(Date())")
+                    print("🟡 VocabQuiz: Buttons should now be YELLOW for 5-second pause")
+                    print("⏱️ VocabQuiz: Starting 5-second SILENT pause at \(Date())")
                     
-                    // Use a Timer for the actual 2-second SILENT delay
-                    self.autoPlayDelayTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
-                        print("⏱️ VocabQuiz: 2-second pause complete at \(Date())")
+                    // Use a Timer for the actual 5-second SILENT delay
+                    self.autoPlayDelayTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
+                        print("⏱️ VocabQuiz: 5-second pause complete at \(Date())")
                         print("🟢 VocabQuiz: Moving to next word now")
                         self.isWaitingForNext = false
                         if self.isAutoPlayMode {
