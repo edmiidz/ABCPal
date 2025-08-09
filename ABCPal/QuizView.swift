@@ -466,6 +466,14 @@ struct QuizView: View {
     }
     
     func updateLayoutForCurrentOrientation() {
+        // Check if device allows landscape
+        guard DeviceHelper.shouldAllowLandscape else {
+            // Force portrait layout on small screens
+            self.useLandscapeLayout = false
+            print("📱 QuizView: Small screen detected, forcing portrait layout")
+            return
+        }
+        
         // More robust orientation detection - only switch to portrait if truly portrait
         let orientation = UIDevice.current.orientation
         

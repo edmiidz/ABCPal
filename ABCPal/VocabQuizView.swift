@@ -400,6 +400,14 @@ struct VocabQuizView: View {
     }
     
     func updateLayoutForCurrentOrientation() {
+        // Check if device allows landscape
+        guard DeviceHelper.shouldAllowLandscape else {
+            // Force portrait layout on small screens
+            self.useLandscapeLayout = false
+            print("📱 VocabQuizView: Small screen detected, forcing portrait layout")
+            return
+        }
+        
         let orientation = UIDevice.current.orientation
         
         if orientation == .portrait {

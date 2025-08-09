@@ -317,8 +317,25 @@ struct NumbersQuizView: View {
     }
     
     func checkOrientation() {
+        // Check if device allows landscape
+        guard DeviceHelper.shouldAllowLandscape else {
+            // Force portrait layout on small screens
+            self.useLandscapeLayout = false
+            print("📱 NumbersQuizView: Small screen detected, forcing portrait layout")
+            return
+        }
+        
+        // Allow landscape on iPad
         if UIDevice.current.userInterfaceIdiom == .pad {
             self.useLandscapeLayout = true
+        } else {
+            // Check actual orientation for larger iPhones
+            let orientation = UIDevice.current.orientation
+            if orientation == .landscapeLeft || orientation == .landscapeRight {
+                self.useLandscapeLayout = true
+            } else if orientation == .portrait {
+                self.useLandscapeLayout = false
+            }
         }
     }
     
