@@ -499,15 +499,23 @@ struct VocabQuizView: View {
         // Spell out the word letter by letter with pauses
         let letters = word.map { String($0) }
         
+        print("🔤 VocabQuiz: Starting to spell '\(word)' with \(letters.count) letters")
+        
         // Speak each letter individually with delays
         for (index, letter) in letters.enumerated() {
             DispatchQueue.main.asyncAfter(deadline: .now() + Double(index) * 0.4) {
                 // Continue spelling even if AutoPlay stops (don't check isAutoPlayMode)
+                print("🔤 VocabQuiz: Speaking letter '\(letter)' at index \(index)")
                 let utterance = AVSpeechUtterance(string: String(letter))
                 utterance.voice = AVSpeechSynthesisVoice(language: language)
                 utterance.rate = 0.15  // Even slower for spelling (25% slower than before)
                 utterance.preUtteranceDelay = 0.04  // 40ms pause before each letter
                 synthesizer.speak(utterance)
+                
+                // Log when this is the last letter
+                if index == letters.count - 1 {
+                    print("🔤 VocabQuiz: Last letter '\(letter)' queued at \(Date())")
+                }
             }
         }
     }
@@ -651,27 +659,47 @@ struct VocabQuizView: View {
                 print("🎯 VocabQuiz: Now spelling '\(self.correctWord)'")
                 self.spellWord(self.correctWord)
                 
-                // Calculate time needed for spelling (each letter takes 0.4s + buffer for speech)
-                let spellingDuration = Double(self.correctWord.count) * 0.4 + 0.5
-                print("🎯 VocabQuiz: Spelling will take \(spellingDuration) seconds")
+                // Calculate time needed for spelling
+                // Each letter dispatch is 0.4s apart, plus time for actual speech
+                // With speech rate of 0.15, each letter takes about 0.5-0.7s to speak
+                // So we need more buffer time
+                let letterSpacing = 0.4 * Double(self.correctWord.count - 1)  // Time between letter dispatches
+                let speechBuffer = 1.5  // Extra time for the last letter to finish speaking
+                let spellingDuration = letterSpacing + speechBuffer
+                print("🎯 VocabQuiz: Spelling will take approximately \(spellingDuration) seconds")
+                print("   (Letter spacing: \(letterSpacing)s + Speech buffer: \(speechBuffer)s)")
                 
                 // Mark as waiting AFTER spelling completes to show visual indicator
                 DispatchQueue.main.asyncAfter(deadline: .now() + spellingDuration) {
-                    print("🎯 VocabQuiz: Spelling complete")
-                    self.isWaitingForNext = true  // Show yellow buttons during pause
-                    print("🟡 VocabQuiz: Buttons should now be YELLOW for 5-second pause")
-                    print("⏱️ VocabQuiz: Starting 5-second SILENT pause at \(Date())")
+                    print("🎯 VocabQuiz: Spelling should be complete now")
                     
-                    // Use a Timer for the actual 5-second SILENT delay
-                    self.autoPlayDelayTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
-                        print("⏱️ VocabQuiz: 5-second pause complete at \(Date())")
-                        print("🟢 VocabQuiz: Moving to next word now")
-                        self.isWaitingForNext = false
-                        if self.isAutoPlayMode {
-                            self.startQuizFlow()
+                    // Check if synthesizer is still speaking
+                    if self.synthesizer.isSpeaking {
+                        print("⚠️ VocabQuiz: Synthesizer is still speaking! Waiting a bit more...")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            self.startSilentPause()
                         }
+                    } else {
+                        self.startSilentPause()
                     }
                 }
+            }
+        }
+    }
+    
+    func startSilentPause() {
+        self.isWaitingForNext = true  // Show yellow buttons during pause
+        print("🟡 VocabQuiz: Buttons should now be YELLOW for 5-second pause")
+        print("⏱️ VocabQuiz: Starting 5-second SILENT pause at \(Date())")
+        print("🔇 VocabQuiz: NO AUDIO should play for the next 5 seconds")
+        
+        // Use a Timer for the actual 5-second SILENT delay
+        self.autoPlayDelayTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
+            print("⏱️ VocabQuiz: 5-second pause complete at \(Date())")
+            print("🟢 VocabQuiz: Moving to next word now")
+            self.isWaitingForNext = false
+            if self.isAutoPlayMode {
+                self.startQuizFlow()
             }
         }
     }

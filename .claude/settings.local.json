@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xcodebuild:*)",
+      "Bash(chmod:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(killall:*)",
+      "Bash(rm:*)",
+      "Bash(xcrun simctl shutdown:*)",
+      "Bash(xcrun simctl erase:*)"
+    ],
+    "deny": []
+  }
+}
