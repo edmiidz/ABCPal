@@ -38,6 +38,12 @@ struct VocabQuizView: View {
     @State private var hasSpelledWord = false
     @State private var isWaitingForNext = false
     @State private var autoPlayDelayTimer: Timer? = nil
+    @State private var currentWordSet: [String] = []  // Current 10 words being quizzed
+    @State private var remainingWords: [String] = []  // Words after the first 10
+    @State private var isShowingContinuePrompt = false
+    @State private var masteredInCurrentSet = 0
+    @State private var totalInCurrentSet = 0
+    @State private var isQuizzingAllWords = false  // Flag to quiz all words after continue
     
     @StateObject private var vocabManager = VocabularyManager.shared
     
@@ -48,7 +54,12 @@ struct VocabQuizView: View {
     let synthesizer = AVSpeechSynthesizer()
     
     var activeWords: [String] {
-        vocabManager.getActiveWords(for: language)
+        // If we have a current set, use that; otherwise get from manager
+        if !currentWordSet.isEmpty {
+            // Filter current set to only include words not yet mastered
+            return currentWordSet.filter { vocabManager.getMastery(for: $0, language: language) < 2 }
+        }
+        return vocabManager.getActiveWords(for: language)
     }
     
     var promptText: String {
@@ -207,14 +218,43 @@ struct VocabQuizView: View {
                         Spacer()
                     }
                     
-                    // Feedback at the bottom
+                    // Feedback and progress bar at the bottom
                     if !isCompleted {
                         VStack {
                             Spacer()
+                            
+                            // Compact progress bar for current word set
+                            if !currentWordSet.isEmpty && !isShowingContinuePrompt {
+                                HStack(spacing: 8) {
+                                    Text(language == "fr-CA" ? "Progrès:" : "Progress:")
+                                        .font(.caption2)
+                                        .foregroundColor(.gray)
+                                    
+                                    ZStack(alignment: .leading) {
+                                        Rectangle()
+                                            .fill(Color.gray.opacity(0.2))
+                                            .frame(width: 120, height: 4)
+                                            .cornerRadius(2)
+                                        
+                                        Rectangle()
+                                            .fill(Color.green)
+                                            .frame(width: 120 * CGFloat(masteredInCurrentSet) / CGFloat(max(totalInCurrentSet, 1)), height: 4)
+                                            .cornerRadius(2)
+                                            .animation(.spring(), value: masteredInCurrentSet)
+                                    }
+                                    
+                                    Text("\(masteredInCurrentSet)/\(totalInCurrentSet)")
+                                        .font(.caption2)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.primary)
+                                }
+                                .padding(.bottom, 8)
+                            }
+                            
                             Text(feedback)
                                 .font(.title3)
                                 .foregroundColor(.gray)
-                                .padding()
+                                .padding(.bottom, 20)
                                 .opacity(feedbackOpacity)
                                 .animation(.easeInOut(duration: 0.5), value: feedbackOpacity)
                         }
@@ -380,10 +420,38 @@ struct VocabQuizView: View {
                                 }
                             }
                             
+                            // Compact progress bar for current word set (portrait mode)
+                            if !currentWordSet.isEmpty && !isShowingContinuePrompt {
+                                HStack(spacing: 8) {
+                                    Text(language == "fr-CA" ? "Progrès:" : "Progress:")
+                                        .font(.caption2)
+                                        .foregroundColor(.gray)
+                                    
+                                    ZStack(alignment: .leading) {
+                                        Rectangle()
+                                            .fill(Color.gray.opacity(0.2))
+                                            .frame(width: 120, height: 4)
+                                            .cornerRadius(2)
+                                        
+                                        Rectangle()
+                                            .fill(Color.green)
+                                            .frame(width: 120 * CGFloat(masteredInCurrentSet) / CGFloat(max(totalInCurrentSet, 1)), height: 4)
+                                            .cornerRadius(2)
+                                            .animation(.spring(), value: masteredInCurrentSet)
+                                    }
+                                    
+                                    Text("\(masteredInCurrentSet)/\(totalInCurrentSet)")
+                                        .font(.caption2)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.primary)
+                                }
+                                .padding(.bottom, 8)
+                            }
+                            
                             Text(feedback)
                                 .font(.title3)
                                 .foregroundColor(.gray)
-                                .padding()
+                                .padding(.bottom, 16)
                                 .opacity(feedbackOpacity)
                                 .animation(.easeInOut(duration: 0.5), value: feedbackOpacity)
                         }
@@ -395,6 +463,7 @@ struct VocabQuizView: View {
         .onAppear {
             print("📱 VocabQuizView appeared")
             loadWords()
+            setupInitialWordSet()
             startQuizFlow()
             updateLayoutForCurrentOrientation()
             
@@ -417,6 +486,33 @@ struct VocabQuizView: View {
         print("📚 VocabQuiz: Loaded \(allWords.count) total words for language: \(language)")
     }
     
+    func setupInitialWordSet() {
+        let allActiveWords = vocabManager.getActiveWords(for: language)
+        print("📚 Setting up word set: \(allActiveWords.count) active words available")
+        
+        if allActiveWords.count > 9 {
+            // Take first 10 words for initial quiz
+            currentWordSet = Array(allActiveWords.prefix(10))
+            remainingWords = Array(allActiveWords.dropFirst(10))
+            totalInCurrentSet = currentWordSet.count
+            
+            // Calculate how many are already mastered in this set
+            masteredInCurrentSet = currentWordSet.filter { vocabManager.getMastery(for: $0, language: language) >= 2 }.count
+            
+            print("📚 Quiz mode: First 10 words selected")
+            print("   Current set: \(currentWordSet.count) words")
+            print("   Remaining: \(remainingWords.count) words")
+            print("   Already mastered in set: \(masteredInCurrentSet)/\(totalInCurrentSet)")
+        } else {
+            // Less than 10 words, quiz all of them
+            currentWordSet = allActiveWords
+            remainingWords = []
+            totalInCurrentSet = currentWordSet.count
+            masteredInCurrentSet = 0
+            print("📚 Quiz mode: All \(currentWordSet.count) words selected (less than 10)")
+        }
+    }
+    
     func updateLayoutForCurrentOrientation() {
         // Check if device allows landscape
         guard DeviceHelper.shouldAllowLandscape else {
@@ -436,6 +532,12 @@ struct VocabQuizView: View {
     }
 
     func checkAnswer(_ selected: String) {
+        // Handle continue prompt response
+        if isShowingContinuePrompt {
+            handleContinueResponse(selected)
+            return
+        }
+        
         print("✅ VocabQuiz: User selected '\(selected)', correct word is '\(correctWord)'")
         // User interaction - exit autoplay mode and reset timers
         stopAutoPlay()
@@ -450,6 +552,12 @@ struct VocabQuizView: View {
                 let currentMastery = vocabManager.getMastery(for: correctWord, language: language)
                 vocabManager.updateMastery(word: correctWord, language: language, count: currentMastery + 1)
                 let count = currentMastery + 1
+                
+                // Update progress if word just became mastered
+                if count == 2 && currentWordSet.contains(correctWord) {
+                    masteredInCurrentSet += 1
+                    print("📊 Progress updated: \(masteredInCurrentSet)/\(totalInCurrentSet) words mastered")
+                }
 
                 if count == 1 {
                     celebrationWord = selected  // Use the selected word to maintain display case
@@ -547,6 +655,12 @@ struct VocabQuizView: View {
         }
         hasSpelledWord = false
         
+        // Check if we need to show continuation prompt
+        if !isQuizzingAllWords && !remainingWords.isEmpty && activeWords.isEmpty {
+            showContinuePrompt()
+            return
+        }
+        
         guard !activeWords.isEmpty else {
             isCompleted = true
             
@@ -627,6 +741,13 @@ struct VocabQuizView: View {
     
     func resetInactivityTimer() {
         inactivityTimer?.invalidate()
+        
+        // Don't start timer if we're showing continue prompt
+        guard !isShowingContinuePrompt else {
+            print("⏰ VocabQuiz: Skipping inactivity timer - showing continue prompt")
+            return
+        }
+        
         print("⏰ VocabQuiz: Setting up 30 second inactivity timer")
         inactivityTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: false) { _ in
             print("⏰ VocabQuiz: Inactivity timer fired! Checking conditions...")
@@ -634,7 +755,8 @@ struct VocabQuizView: View {
             print("   isCompleted: \(self.isCompleted)")
             print("   isReady: \(self.isReady)")
             print("   options.isEmpty: \(self.options.isEmpty)")
-            if !self.areButtonsDisabled && !self.isCompleted && self.isReady && !self.options.isEmpty {
+            print("   isShowingContinuePrompt: \(self.isShowingContinuePrompt)")
+            if !self.areButtonsDisabled && !self.isCompleted && self.isReady && !self.options.isEmpty && !self.isShowingContinuePrompt {
                 print("✅ VocabQuiz: All conditions met, starting AutoPlay")
                 self.startAutoPlay()
             } else {
@@ -644,6 +766,12 @@ struct VocabQuizView: View {
     }
     
     func startAutoPlay() {
+        // Don't start autoplay if showing continue prompt
+        guard !isShowingContinuePrompt else {
+            print("🎯 VocabQuiz: Cannot start AutoPlay - showing continue prompt")
+            return
+        }
+        
         print("🎯 VocabQuiz AutoPlay: Starting for word '\(correctWord)'")
         print("🔊 VocabQuiz: Current word is: \(correctWord)")
         isAutoPlayMode = true
@@ -661,6 +789,11 @@ struct VocabQuizView: View {
         guard !isWaitingForNext else { 
             print("🎯 VocabQuiz: Already waiting for next")
             return 
+        }
+        guard !isShowingContinuePrompt else {
+            print("🎯 VocabQuiz: Cannot continue AutoPlay - showing continue prompt")
+            stopAutoPlay()
+            return
         }
         
         print("🎯 VocabQuiz: AutoPlay cycle for word '\(correctWord)'")
@@ -730,5 +863,56 @@ struct VocabQuizView: View {
         autoPlayTimer = nil
         autoPlayDelayTimer?.invalidate()
         autoPlayDelayTimer = nil
+    }
+    
+    func showContinuePrompt() {
+        print("🎯 Showing continuation prompt for remaining \(remainingWords.count) words")
+        
+        // IMPORTANT: Stop all autoplay and timers before showing prompt
+        stopAutoPlay()
+        inactivityTimer?.invalidate()
+        inactivityTimer = nil
+        
+        isShowingContinuePrompt = true
+        isCompleted = false
+        
+        // Show completion message with continue option
+        feedback = language == "fr-CA"
+            ? "Bravo! Tu as terminé les 10 premiers mots! Veux-tu continuer avec les \(remainingWords.count) mots restants?"
+            : "Great job! You've completed the first 10 words! Would you like to continue with the remaining \(remainingWords.count) words?"
+        
+        speak(text: feedback)
+        
+        // Show Yes/No buttons (using the existing options array temporarily)
+        options = [language == "fr-CA" ? "Oui" : "Yes", language == "fr-CA" ? "Non" : "No"]
+        areButtonsDisabled = false
+        correctWord = "" // Clear correct word so AutoPlay doesn't try to speak it
+        
+        // Temporarily override checkAnswer for continue prompt
+        isShowingContinuePrompt = true
+    }
+    
+    func handleContinueResponse(_ response: String) {
+        let isYes = (response == "Yes" || response == "Oui")
+        
+        if isYes {
+            print("📚 User chose to continue with all remaining words")
+            // Set up to quiz all remaining words
+            isQuizzingAllWords = true
+            currentWordSet = remainingWords
+            remainingWords = []
+            totalInCurrentSet = currentWordSet.count
+            masteredInCurrentSet = currentWordSet.filter { vocabManager.getMastery(for: $0, language: language) >= 2 }.count
+            
+            // Reset and continue
+            isShowingContinuePrompt = false
+            feedback = ""
+            hasPlayedPrompt = false  // Reset to play prompt again
+            startQuizFlow()
+        } else {
+            print("📚 User chose not to continue")
+            // Go back to menu
+            goBack()
+        }
     }
 }
