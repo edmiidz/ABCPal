@@ -662,10 +662,20 @@ struct QuizView: View {
     func startAutoPlay() {
         addDebugLog("AutoPlay START: \(correctLetter)")
         isAutoPlayMode = true
-        hasSpokenCorrectLetter = false
+        hasSpokenCorrectLetter = true  // Letter was already spoken in startQuizFlow
         
-        // Start the continuous autoplay cycle
-        continueAutoPlay()
+        // Don't speak immediately - wait for the first 5-second delay
+        isWaitingForNext = true
+        
+        // Start the 5-second timer before continuing cycle
+        autoPlayDelayTimer?.invalidate()
+        autoPlayDelayTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { _ in
+            self.addDebugLog("Timer: FIRED!")
+            self.isWaitingForNext = false
+            if self.isAutoPlayMode {
+                self.startQuizFlow()
+            }
+        }
     }
     
     func continueAutoPlay() {

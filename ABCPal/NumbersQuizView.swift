@@ -468,9 +468,14 @@ struct NumbersQuizView: View {
         // Generate options
         generateOptions()
         
-        // Speak the prompt
-        speak(text: promptText)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        // Only speak the prompt if not in AutoPlay mode
+        if !wasInAutoPlay {
+            speak(text: promptText)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                speak(number: currentNumber)
+            }
+        } else {
+            // In AutoPlay, just speak the number immediately
             speak(number: currentNumber)
         }
         
@@ -527,10 +532,8 @@ struct NumbersQuizView: View {
     func startAutoPlay() {
         isAutoPlayMode = true
         
-        // Repeat the number sound
-        speak(number: currentNumber)
-        
-        // Set waiting flag to show visual indicator
+        // Don't speak the number again - it was already spoken in startQuizFlow
+        // Just set up the timer to continue to next number
         isWaitingForNext = true
         
         // Move to next number after a 5-second delay
