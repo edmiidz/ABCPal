@@ -324,6 +324,13 @@ struct NumbersQuizView: View {
             startQuizFlow()
             checkOrientation()
         }
+        .onDisappear {
+            // Clean up AutoPlay and timers when view disappears
+            stopAutoPlay()
+            inactivityTimer?.invalidate()
+            inactivityTimer = nil
+            synthesizer.stopSpeaking(at: .immediate)
+        }
         .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
             checkOrientation()
         }

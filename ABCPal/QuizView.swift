@@ -70,7 +70,6 @@ struct QuizView: View {
             if useLandscapeLayout {
                 // Landscape layout as default
                 ZStack {
-                    Color.red.opacity(0.3) // TEST: Make background red to confirm changes are deploying
                     // Main content area
                     if isCompleted {
                         // Celebration view when completed
@@ -244,27 +243,6 @@ struct QuizView: View {
                                 .animation(.easeInOut(duration: 0.5), value: feedbackOpacity)
                         }
                     }
-                    
-                    // Debug panel at top center - more visible
-                    VStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("DEBUG LOG")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                            ForEach(debugLog.suffix(5), id: \.self) { log in
-                                Text(log)
-                                    .font(.caption)
-                                    .foregroundColor(.yellow)
-                                    .lineLimit(1)
-                            }
-                        }
-                        .padding(10)
-                        .background(Color.red)
-                        .cornerRadius(8)
-                        Spacer()
-                    }
-                    .padding(.top, 50)
                 }
             } else {
                 // Portrait layout - only used when definitively in portrait
@@ -433,27 +411,6 @@ struct QuizView: View {
                         }
                         .padding()
                     }
-                    
-                    // Debug panel for portrait mode
-                    VStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("DEBUG LOG")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.white)
-                            ForEach(debugLog.suffix(5), id: \.self) { log in
-                                Text(log)
-                                    .font(.caption)
-                                    .foregroundColor(.yellow)
-                                    .lineLimit(1)
-                            }
-                        }
-                        .padding(10)
-                        .background(Color.red)
-                        .cornerRadius(8)
-                        Spacer()
-                    }
-                    .padding(.top, 100)
                 }
             }
         }
@@ -473,9 +430,15 @@ struct QuizView: View {
         .onDisappear {
             // Remove observer when view disappears
             NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
-            // Clean up timers
+            // Clean up AutoPlay and timers when view disappears
+            stopAutoPlay()
             inactivityTimer?.invalidate()
+            inactivityTimer = nil
             autoPlayTimer?.invalidate()
+            autoPlayTimer = nil
+            autoPlayDelayTimer?.invalidate()
+            autoPlayDelayTimer = nil
+            synthesizer.stopSpeaking(at: .immediate)
         }
     }
     

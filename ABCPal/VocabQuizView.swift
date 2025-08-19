@@ -474,10 +474,15 @@ struct VocabQuizView: View {
         .onDisappear {
             print("📱 VocabQuizView disappearing")
             NotificationCenter.default.removeObserver(self, name: UIDevice.orientationDidChangeNotification, object: nil)
-            // Clean up timers
+            // Clean up AutoPlay and timers when view disappears
+            stopAutoPlay()
             inactivityTimer?.invalidate()
+            inactivityTimer = nil
             autoPlayTimer?.invalidate()
+            autoPlayTimer = nil
             autoPlayDelayTimer?.invalidate()
+            autoPlayDelayTimer = nil
+            synthesizer.stopSpeaking(at: .immediate)
         }
     }
     
