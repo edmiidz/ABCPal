@@ -142,46 +142,48 @@ struct VocabQuizView: View {
                                 VStack(spacing: 20) {
                                     if !options.isEmpty {
                                         ForEach(0..<min(options.count, 4), id: \.self) { index in
-                                            Button(action: {
-                                                checkAnswer(options[index])
-                                            }) {
-                                                HStack {
-                                                    Text(options[index])
-                                                        .font(.title2)
-                                                        .fontWeight(.medium)
-                                                        .foregroundColor(.blue)
-                                                    
-                                                    // Add speaker icon for Yes/No buttons during continue prompt
-                                                    if isShowingContinuePrompt {
-                                                        Button(action: {
-                                                            speak(text: options[index])
-                                                        }) {
-                                                            Image(systemName: "speaker.wave.2.fill")
-                                                                .font(.title3)
-                                                                .foregroundColor(.gray)
-                                                        }
-                                                        .buttonStyle(PlainButtonStyle())
-                                                    }
-                                                    
-                                                    if celebrationWord == options[index] {
-                                                        Text("🎉")
+                                            HStack(spacing: 10) {
+                                                // Separate speaker button for continue prompt
+                                                if isShowingContinuePrompt {
+                                                    Button(action: {
+                                                        speak(text: options[index])
+                                                    }) {
+                                                        Image(systemName: "speaker.wave.2.fill")
                                                             .font(.title2)
+                                                            .foregroundColor(.gray)
                                                     }
-                                                    if thinkingWord == options[index] {
-                                                        Text("🤔")
-                                                            .font(.title2)
-                                                    }
-                                                    // Show pointing emoji in autoplay mode for correct answer
-                                                    if isAutoPlayMode && options[index].lowercased() == correctWord.lowercased() {
-                                                        Text("👈")
-                                                            .font(.title2)
-                                                    }
+                                                    .buttonStyle(PlainButtonStyle())
                                                 }
-                                                .frame(width: 200, height: 70)
-                                                .background(isWaitingForNext && isAutoPlayMode ? Color.yellow.opacity(0.5) : Color.purple.opacity(0.2))
-                                                .cornerRadius(20)
+                                                
+                                                Button(action: {
+                                                    checkAnswer(options[index])
+                                                }) {
+                                                    HStack {
+                                                        Text(options[index])
+                                                            .font(.title2)
+                                                            .fontWeight(.medium)
+                                                            .foregroundColor(.blue)
+                                                        
+                                                        if celebrationWord == options[index] {
+                                                            Text("🎉")
+                                                                .font(.title2)
+                                                        }
+                                                        if thinkingWord == options[index] {
+                                                            Text("🤔")
+                                                                .font(.title2)
+                                                        }
+                                                        // Show pointing emoji in autoplay mode for correct answer
+                                                        if isAutoPlayMode && options[index].lowercased() == correctWord.lowercased() {
+                                                            Text("👈")
+                                                                .font(.title2)
+                                                        }
+                                                    }
+                                                    .frame(width: 200, height: 70)
+                                                    .background(isWaitingForNext && isAutoPlayMode ? Color.yellow.opacity(0.5) : Color.purple.opacity(0.2))
+                                                    .cornerRadius(20)
+                                                }
+                                                .disabled(areButtonsDisabled)
                                             }
-                                            .disabled(areButtonsDisabled)
                                         }
                                     }
                                 }
@@ -403,44 +405,46 @@ struct VocabQuizView: View {
                                 }
                                 
                                 ForEach(options, id: \.self) { word in
-                                    Button(action: {
-                                        checkAnswer(word)
-                                    }) {
-                                        HStack {
-                                            Text(word)
-                                                .font(.title2)
-                                            
-                                            // Add speaker icon for Yes/No buttons during continue prompt
-                                            if isShowingContinuePrompt {
-                                                Button(action: {
-                                                    speak(text: word)
-                                                }) {
-                                                    Image(systemName: "speaker.wave.2.fill")
-                                                        .font(.title3)
-                                                        .foregroundColor(.gray)
-                                                }
-                                                .buttonStyle(PlainButtonStyle())
-                                            }
-                                            
-                                            if celebrationWord == word {
-                                                Text("🎉")
+                                    HStack(spacing: 10) {
+                                        // Separate speaker button for continue prompt
+                                        if isShowingContinuePrompt {
+                                            Button(action: {
+                                                speak(text: word)
+                                            }) {
+                                                Image(systemName: "speaker.wave.2.fill")
                                                     .font(.title2)
+                                                    .foregroundColor(.gray)
                                             }
-                                            if thinkingWord == word {
-                                                Text("🤔")
-                                                    .font(.title2)
-                                            }
-                                            // Show pointing emoji in autoplay mode for correct answer
-                                            if isAutoPlayMode && word.lowercased() == correctWord.lowercased() {
-                                                Text("👈")
-                                                    .font(.title2)
-                                            }
+                                            .buttonStyle(PlainButtonStyle())
                                         }
-                                        .frame(minWidth: 150, minHeight: 60)
-                                        .background(isWaitingForNext && isAutoPlayMode ? Color.yellow.opacity(0.5) : Color.purple.opacity(0.2))
-                                        .cornerRadius(12)
+                                        
+                                        Button(action: {
+                                            checkAnswer(word)
+                                        }) {
+                                            HStack {
+                                                Text(word)
+                                                    .font(.title2)
+                                                
+                                                if celebrationWord == word {
+                                                    Text("🎉")
+                                                        .font(.title2)
+                                                }
+                                                if thinkingWord == word {
+                                                    Text("🤔")
+                                                        .font(.title2)
+                                                }
+                                                // Show pointing emoji in autoplay mode for correct answer
+                                                if isAutoPlayMode && word.lowercased() == correctWord.lowercased() {
+                                                    Text("👈")
+                                                        .font(.title2)
+                                                }
+                                            }
+                                            .frame(minWidth: 150, minHeight: 60)
+                                            .background(isWaitingForNext && isAutoPlayMode ? Color.yellow.opacity(0.5) : Color.purple.opacity(0.2))
+                                            .cornerRadius(12)
+                                        }
+                                        .disabled(areButtonsDisabled)
                                     }
-                                    .disabled(areButtonsDisabled)
                                 }
                             }
                             
