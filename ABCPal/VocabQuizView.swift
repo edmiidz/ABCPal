@@ -151,6 +151,18 @@ struct VocabQuizView: View {
                                                         .fontWeight(.medium)
                                                         .foregroundColor(.blue)
                                                     
+                                                    // Add speaker icon for Yes/No buttons during continue prompt
+                                                    if isShowingContinuePrompt {
+                                                        Button(action: {
+                                                            speak(text: options[index])
+                                                        }) {
+                                                            Image(systemName: "speaker.wave.2.fill")
+                                                                .font(.title3)
+                                                                .foregroundColor(.gray)
+                                                        }
+                                                        .buttonStyle(PlainButtonStyle())
+                                                    }
+                                                    
                                                     if celebrationWord == options[index] {
                                                         Text("🎉")
                                                             .font(.title2)
@@ -397,6 +409,18 @@ struct VocabQuizView: View {
                                         HStack {
                                             Text(word)
                                                 .font(.title2)
+                                            
+                                            // Add speaker icon for Yes/No buttons during continue prompt
+                                            if isShowingContinuePrompt {
+                                                Button(action: {
+                                                    speak(text: word)
+                                                }) {
+                                                    Image(systemName: "speaker.wave.2.fill")
+                                                        .font(.title3)
+                                                        .foregroundColor(.gray)
+                                                }
+                                                .buttonStyle(PlainButtonStyle())
+                                            }
                                             
                                             if celebrationWord == word {
                                                 Text("🎉")
