@@ -71,3 +71,5 @@ warmth
 watched
 wiped
 wrapped
+and
+akin

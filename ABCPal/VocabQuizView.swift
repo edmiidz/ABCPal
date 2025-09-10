@@ -44,6 +44,9 @@ struct VocabQuizView: View {
     @State private var masteredInCurrentSet = 0
     @State private var totalInCurrentSet = 0
     @State private var isQuizzingAllWords = false  // Flag to quiz all words after continue
+    @State private var isSpeakerButtonDisabled = false
+    @State private var lastSpeakTime = Date.distantPast
+    @State private var speakDebounceTimer: Timer?
     
     @StateObject private var vocabManager = VocabularyManager.shared
     
@@ -52,6 +55,9 @@ struct VocabQuizView: View {
     }
     
     let synthesizer = AVSpeechSynthesizer()
+    @State private var audioFailureCount = 0
+    @State private var lastAudioAttempt = Date()
+    @State private var isAudioRecovering = false
     
     var activeWords: [String] {
         // If we have a current set, use that; otherwise get from manager
@@ -125,7 +131,9 @@ struct VocabQuizView: View {
                                         stopAutoPlay()
                                         resetInactivityTimer()
                                         synthesizer.stopSpeaking(at: .immediate)
-                                        speak(word: correctWord)
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                            speak(word: correctWord)
+                                        }
                                     }) {
                                         Image(systemName: "speaker.wave.3.fill")
                                             .font(.system(size: 60))
@@ -381,7 +389,9 @@ struct VocabQuizView: View {
                                     stopAutoPlay()
                                     resetInactivityTimer()
                                     synthesizer.stopSpeaking(at: .immediate)
-                                    speak(text: promptText)
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        speak(text: promptText)
+                                    }
                                 }) {
                                     HStack(spacing: 8) {
                                         Image(systemName: "speaker.wave.2.fill")
@@ -398,7 +408,9 @@ struct VocabQuizView: View {
                                     stopAutoPlay()
                                     resetInactivityTimer()
                                     synthesizer.stopSpeaking(at: .immediate)
-                                    speak(word: correctWord)
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                        speak(word: correctWord)
+                                    }
                                 }) {
                                     Text("🔊")
                                         .font(.system(size: 60))
@@ -643,6 +655,7 @@ struct VocabQuizView: View {
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = AVSpeechSynthesisVoice(language: language)
         utterance.rate = 0.4
+        utterance.preUtteranceDelay = 0.3  // Longer delay to ensure clean start and avoid cutoff
         synthesizer.speak(utterance)
     }
 
@@ -650,7 +663,8 @@ struct VocabQuizView: View {
         print("🔊 VocabQuiz: Speaking word '\(word)'")
         let utterance = AVSpeechUtterance(string: word)
         utterance.voice = AVSpeechSynthesisVoice(language: language)
-        utterance.rate = 0.3
+        utterance.rate = 0.25  // Restore reasonable speed
+        utterance.preUtteranceDelay = 0.3  // Longer delay to ensure clean start and avoid cutoff
         synthesizer.speak(utterance)
     }
     
