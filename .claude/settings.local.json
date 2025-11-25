@@ -8,7 +8,16 @@
       "Bash(killall:*)",
       "Bash(rm:*)",
       "Bash(xcrun simctl shutdown:*)",
-      "Bash(xcrun simctl erase:*)"
+      "Bash(xcrun simctl erase:*)",
+      "Bash(sed:*)",
+      "Bash(cat:*)",
+      "Bash(git checkout:*)",
+      "Read(//Users/edmiidz/Library/Developer/Xcode/DerivedData/ABCPal-ejtfstbxbmwynvbmqhczlqowebfh/Build/Products/Debug-iphoneos/**)",
+      "Bash(xcrun devicectl list:*)",
+      "Bash(xcrun devicectl device install:*)",
+      "Bash(xcrun xctrace:*)",
+      "Bash(echo:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }
