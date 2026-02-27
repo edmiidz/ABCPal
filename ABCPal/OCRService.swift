@@ -31,27 +31,41 @@ class OCRService {
             print("Found \(observations.count) text observations")
             
             // Group observations by approximate Y position (for better line grouping)
+            // Use average bounding box height as a dynamic threshold so it adapts
+            // to large-font children's books and small-font text alike.
+            let avgHeight: CGFloat = observations.isEmpty ? 0.03 :
+                observations.map { $0.boundingBox.height }.reduce(0, +) / CGFloat(observations.count)
+            let groupingThreshold = max(avgHeight * 0.5, 0.02)
+
             var lineGroups: [[VNRecognizedTextObservation]] = []
-            let sortedObservations = observations.sorted { $0.boundingBox.midY > $1.boundingBox.midY }
-            
-            for observation in sortedObservations {
+
+            for observation in observations {
                 var added = false
                 for i in 0..<lineGroups.count {
-                    if let firstInGroup = lineGroups[i].first {
-                        // If Y positions are close (within 2% of image height), group them
-                        if abs(firstInGroup.boundingBox.midY - observation.boundingBox.midY) < 0.02 {
-                            lineGroups[i].append(observation)
-                            lineGroups[i].sort { $0.boundingBox.minX < $1.boundingBox.minX }
-                            added = true
-                            break
-                        }
+                    // Compare against average midY of the group for stability
+                    let groupMidY = lineGroups[i].map { $0.boundingBox.midY }.reduce(0, +) / CGFloat(lineGroups[i].count)
+                    if abs(groupMidY - observation.boundingBox.midY) < groupingThreshold {
+                        lineGroups[i].append(observation)
+                        added = true
+                        break
                     }
                 }
                 if !added {
                     lineGroups.append([observation])
                 }
             }
-            
+
+            // Sort groups top-to-bottom (Vision Y=0 is bottom, so descending midY = top first)
+            // Then sort observations within each group left-to-right
+            lineGroups.sort { group1, group2 in
+                let midY1 = group1.map { $0.boundingBox.midY }.reduce(0, +) / CGFloat(group1.count)
+                let midY2 = group2.map { $0.boundingBox.midY }.reduce(0, +) / CGFloat(group2.count)
+                return midY1 > midY2
+            }
+            for i in 0..<lineGroups.count {
+                lineGroups[i].sort { $0.boundingBox.minX < $1.boundingBox.minX }
+            }
+
             // Convert grouped observations to text with proper spacing
             let recognizedText = lineGroups.map { group in
                 group.compactMap { observation in
