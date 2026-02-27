@@ -172,14 +172,25 @@ class VocabularyManager: ObservableObject {
     }
     
     func importVocabularyFromText(_ text: String, language: String) -> (added: Int, duplicates: Int) {
-        // Parse text into words (could be from BookReaderOCR or other sources)
-        let words = text.lowercased()
+        // Detect proper nouns before lowercasing so we can preserve their capitalization
+        let properNouns = ProperNounDetector.detectProperNouns(in: text, language: language)
+
+        // Parse text into words, preserving original case
+        let rawWords = text
             .components(separatedBy: .whitespacesAndNewlines)
             .flatMap { $0.components(separatedBy: .punctuationCharacters) }
-            .filter { $0.count > 2 } // Only words with more than 2 characters
+            .filter { $0.count > 2 }
             .filter { !$0.isEmpty }
-        
-        return addCustomWords(Array(Set(words)), language: language)
+
+        // Lowercase non-proper-nouns, keep original case for detected names
+        let processedWords = rawWords.map { word -> String in
+            if properNouns.contains(word.lowercased()) {
+                return word // preserve original capitalization
+            }
+            return word.lowercased()
+        }
+
+        return addCustomWords(Array(Set(processedWords)), language: language)
     }
     
     func getActiveWords(for language: String) -> [String] {

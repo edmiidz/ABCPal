@@ -218,7 +218,7 @@ struct VocabularyManagementView: View {
                         .font(.headline)
                         .padding()
                     
-                    Text("Paste text from a book or document. Words will be extracted automatically.")
+                    Text("Paste text from a book or document. Words will be extracted automatically. Proper nouns (names, places) are detected and keep their capitalization.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)

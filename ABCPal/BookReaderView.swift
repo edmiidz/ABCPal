@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVFoundation
+import NaturalLanguage
 
 struct BookReaderView: View {
     var language: String
@@ -313,6 +314,7 @@ struct VocabCaptureView: View {
     
     @State private var selectedWords: Set<String> = []
     @State private var showingProperNounView = false
+    @State private var detectedProperNouns: Set<String> = []
     @Environment(\.presentationMode) var presentationMode
     @State private var hasInitialized = false
     
@@ -388,9 +390,11 @@ struct VocabCaptureView: View {
                     .padding()
                 }
                 .onAppear {
-                    // Initialize with all words selected
                     if !hasInitialized {
+                        // Initialize with all words selected
                         selectedWords = Set(extractedWords.map { $0.lowercase })
+                        // Run NLTagger on full text for proper noun detection
+                        detectedProperNouns = ProperNounDetector.detectProperNouns(in: text, language: language)
                         hasInitialized = true
                     }
                 }
@@ -406,15 +410,20 @@ struct VocabCaptureView: View {
                     Button(language == "fr-CA" ? "Suivant" : "Next") {
                         // Check if any selected words start with capital letter
                         let capitalizedWords = extractedWords.filter { wordPair in
-                            selectedWords.contains(wordPair.lowercase) && 
+                            selectedWords.contains(wordPair.lowercase) &&
                             wordPair.original.first?.isUppercase == true
                         }
-                        
-                        if !capitalizedWords.isEmpty {
-                            // Show proper noun detection view
+
+                        // Check if NLTagger detected any names among the capitalized words
+                        let detectedAmongSelected = capitalizedWords.filter { wordPair in
+                            detectedProperNouns.contains(wordPair.lowercase)
+                        }
+
+                        if !capitalizedWords.isEmpty && !detectedAmongSelected.isEmpty {
+                            // Show proper noun view with NLTagger results for smart pre-selection
                             showingProperNounView = true
                         } else {
-                            // Just add the words as lowercase
+                            // No names detected — skip proper noun screen, add all as lowercase
                             onComplete(Array(selectedWords))
                             presentationMode.wrappedValue.dismiss()
                         }
@@ -432,9 +441,10 @@ struct VocabCaptureView: View {
         .sheet(isPresented: $showingProperNounView) {
             ProperNounSelectionView(
                 words: extractedWords.filter { wordPair in
-                    selectedWords.contains(wordPair.lowercase) && 
+                    selectedWords.contains(wordPair.lowercase) &&
                     wordPair.original.first?.isUppercase == true
                 },
+                detectedProperNouns: detectedProperNouns,
                 language: language,
                 onComplete: { properNouns, regularWords in
                     // Get all originally selected words that weren't capitalized
@@ -458,22 +468,23 @@ struct VocabCaptureView: View {
 // Proper Noun Selection View
 struct ProperNounSelectionView: View {
     let words: [(original: String, lowercase: String)]
+    let detectedProperNouns: Set<String>
     let language: String
     let onComplete: ([String], [String]) -> Void
-    
+
     @State private var properNouns: Set<String> = []
     @Environment(\.presentationMode) var presentationMode
     @State private var hasInitialized = false
-    
+
     var body: some View {
         NavigationView {
             VStack {
-                Text(language == "fr-CA" ? "Y a-t-il des noms propres?" : "Are any of these names?")
+                Text(language == "fr-CA" ? "Noms propres détectés" : "Proper nouns detected")
                     .font(.headline)
                     .padding(.top)
                     .padding(.horizontal)
-                
-                Text(language == "fr-CA" ? "Appuyez pour désélectionner les noms propres" : "Tap to deselect proper nouns")
+
+                Text(language == "fr-CA" ? "Vérifiez et ajustez si nécessaire" : "Review and adjust if needed")
                     .font(.caption)
                     .foregroundColor(.gray)
                     .padding(.horizontal)
@@ -500,9 +511,9 @@ struct ProperNounSelectionView: View {
                     .padding()
                 }
                 .onAppear {
-                    // Initialize with all capitalized words selected as proper nouns
+                    // Only pre-select words that NLTagger identified as names
                     if !hasInitialized {
-                        properNouns = Set(words.map { $0.original })
+                        properNouns = Set(words.filter { detectedProperNouns.contains($0.lowercase) }.map { $0.original })
                         hasInitialized = true
                     }
                 }
