@@ -317,25 +317,32 @@ struct VocabCaptureView: View {
     @State private var detectedProperNouns: Set<String> = []
     @Environment(\.presentationMode) var presentationMode
     @State private var hasInitialized = false
-    
-    // Extract words while preserving original case for display
+    @ObservedObject private var vocabManager = VocabularyManager.shared
+
+    // Extract words while preserving original case for display, excluding existing vocabulary
     var extractedWords: [(original: String, lowercase: String)] {
         let words = text
             .components(separatedBy: .whitespacesAndNewlines)
             .flatMap { $0.components(separatedBy: .punctuationCharacters) }
             .filter { $0.count > 2 }
             .filter { !$0.isEmpty }
-        
+
+        // Get existing vocabulary words (lowercased) to filter duplicates
+        let existingWords: Set<String> = {
+            let vocabWords = language == "en-US" ? vocabManager.englishWords : vocabManager.frenchWords
+            return Set(vocabWords.map { $0.lowercased() })
+        }()
+
         // Create pairs of original and lowercase, removing duplicates based on lowercase
         var uniqueWords: [String: String] = [:] // lowercase: original
         for word in words {
             let lower = word.lowercased()
-            // Keep the original case version if we haven't seen this word yet
-            if uniqueWords[lower] == nil {
+            // Skip words already in vocabulary and internal duplicates
+            if uniqueWords[lower] == nil && !existingWords.contains(lower) {
                 uniqueWords[lower] = word
             }
         }
-        
+
         return uniqueWords.map { (original: $0.value, lowercase: $0.key) }
             .sorted { $0.lowercase < $1.lowercase }
     }
