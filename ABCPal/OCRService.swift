@@ -71,7 +71,7 @@ class OCRService {
                 group.compactMap { observation in
                     observation.topCandidates(1).first?.string
                 }.joined(separator: " ")
-            }.joined(separator: " ")
+            }.joined(separator: "\n")
             
             print("OCR Result length: \(recognizedText.count) characters")
             print("First 100 chars: \(String(recognizedText.prefix(100)))")

@@ -9,71 +9,253 @@ import Foundation
 
 class VocabularyManager: ObservableObject {
     static let shared = VocabularyManager()
-    
+
     @Published var englishWords: [String] = []
     @Published var frenchWords: [String] = []
     @Published var englishMastery: [String: Int] = [:]
     @Published var frenchMastery: [String: Int] = [:]
-    
+    @Published var vocabLists: [VocabList] = []
+
     private let englishWordsKey = "englishWordsKey"
     private let frenchWordsKey = "frenchWordsKey"
     private let englishMasteryKey = "englishMasteryKey"
     private let frenchMasteryKey = "frenchMasteryKey"
     private let customEnglishWordsKey = "customEnglishWordsKey"
     private let customFrenchWordsKey = "customFrenchWordsKey"
-    
+    private let vocabListsKey = "vocabListsKey"
+    private let didMigrateToListsKey = "didMigrateToListsKey"
+
     init() {
-        loadVocabulary()
+        loadVocabLists()
+        migrateToListsIfNeeded()
+        rebuildDefaultLists()
+        recomputeWordArrays()
         loadMastery()
     }
-    
-    func loadVocabulary() {
-        // Load default vocabulary from files
+
+    // MARK: - Vocab Lists Persistence
+
+    private func loadVocabLists() {
+        if let data = UserDefaults.standard.data(forKey: vocabListsKey),
+           let lists = try? JSONDecoder().decode([VocabList].self, from: data) {
+            vocabLists = lists
+        }
+    }
+
+    private func saveVocabLists() {
+        if let data = try? JSONEncoder().encode(vocabLists) {
+            UserDefaults.standard.set(data, forKey: vocabListsKey)
+        }
+    }
+
+    // MARK: - Migration
+
+    private func migrateToListsIfNeeded() {
+        guard !UserDefaults.standard.bool(forKey: didMigrateToListsKey) else { return }
+
+        // Migrate existing custom English words to a "My Words" list
+        let customEnglish = UserDefaults.standard.stringArray(forKey: customEnglishWordsKey) ?? []
+        if !customEnglish.isEmpty {
+            let myEnglishList = VocabList(name: "My Words", language: "en-US", words: customEnglish)
+            vocabLists.append(myEnglishList)
+        }
+
+        // Migrate existing custom French words to a "My Words" list
+        let customFrench = UserDefaults.standard.stringArray(forKey: customFrenchWordsKey) ?? []
+        if !customFrench.isEmpty {
+            let myFrenchList = VocabList(name: "My Words", language: "fr-CA", words: customFrench)
+            vocabLists.append(myFrenchList)
+        }
+
+        saveVocabLists()
+        UserDefaults.standard.set(true, forKey: didMigrateToListsKey)
+    }
+
+    // MARK: - Default Lists (rebuilt from bundle on each launch)
+
+    private func rebuildDefaultLists() {
+        // Remove old default lists
+        vocabLists.removeAll(where: { $0.isDefault })
+
+        // Build English default list from bundle
         if let englishPath = Bundle.main.path(forResource: "english_vocab", ofType: "txt"),
            let englishContent = try? String(contentsOfFile: englishPath) {
-            let defaultEnglish = englishContent.components(separatedBy: .newlines).filter { !$0.isEmpty }
-            
-            // Add custom words if any
-            let customEnglish = UserDefaults.standard.stringArray(forKey: customEnglishWordsKey) ?? []
-            englishWords = Array(Set(defaultEnglish + customEnglish)).sorted()
+            let words = englishContent.components(separatedBy: .newlines).filter { !$0.isEmpty }
+            let defaultEnglish = VocabList(name: "Default", language: "en-US", words: words, isDefault: true)
+            vocabLists.insert(defaultEnglish, at: 0)
         }
-        
+
+        // Build French default list from bundle
         if let frenchPath = Bundle.main.path(forResource: "french_vocab", ofType: "txt"),
            let frenchContent = try? String(contentsOfFile: frenchPath) {
-            let defaultFrench = frenchContent.components(separatedBy: .newlines).filter { !$0.isEmpty }
-            
-            // Add custom words if any
-            let customFrench = UserDefaults.standard.stringArray(forKey: customFrenchWordsKey) ?? []
-            frenchWords = Array(Set(defaultFrench + customFrench)).sorted()
+            let words = frenchContent.components(separatedBy: .newlines).filter { !$0.isEmpty }
+            let defaultFrench = VocabList(name: "Default", language: "fr-CA", words: words, isDefault: true)
+            // Insert after English default if it exists
+            let insertIndex = vocabLists.first?.isDefault == true ? 1 : 0
+            vocabLists.insert(defaultFrench, at: insertIndex)
         }
-        
+
         // Fallback if bundle loading fails
-        if englishWords.isEmpty {
+        if !vocabLists.contains(where: { $0.isDefault && $0.language == "en-US" }) {
             let filePath = "/Users/edmiidz/Projects/GitHub/ABCPal/ABCPal/english_vocab.txt"
             if let content = try? String(contentsOfFile: filePath) {
-                englishWords = content.components(separatedBy: .newlines).filter { !$0.isEmpty }
+                let words = content.components(separatedBy: .newlines).filter { !$0.isEmpty }
+                let defaultEnglish = VocabList(name: "Default", language: "en-US", words: words, isDefault: true)
+                vocabLists.insert(defaultEnglish, at: 0)
             }
         }
-        
-        if frenchWords.isEmpty {
+
+        if !vocabLists.contains(where: { $0.isDefault && $0.language == "fr-CA" }) {
             let filePath = "/Users/edmiidz/Projects/GitHub/ABCPal/ABCPal/french_vocab.txt"
             if let content = try? String(contentsOfFile: filePath) {
-                frenchWords = content.components(separatedBy: .newlines).filter { !$0.isEmpty }
+                let words = content.components(separatedBy: .newlines).filter { !$0.isEmpty }
+                let defaultFrench = VocabList(name: "Default", language: "fr-CA", words: words, isDefault: true)
+                vocabLists.insert(defaultFrench, at: min(1, vocabLists.count))
             }
         }
     }
-    
+
+    // MARK: - Recompute merged word arrays (for quiz compatibility)
+
+    func recomputeWordArrays() {
+        let englishLists = vocabLists.filter { $0.language == "en-US" }
+        let frenchLists = vocabLists.filter { $0.language == "fr-CA" }
+
+        englishWords = Array(Set(englishLists.flatMap { $0.words })).sorted { $0.lowercased() < $1.lowercased() }
+        frenchWords = Array(Set(frenchLists.flatMap { $0.words })).sorted { $0.lowercased() < $1.lowercased() }
+    }
+
+    // MARK: - Legacy loadVocabulary (now delegates to list system)
+
+    func loadVocabulary() {
+        rebuildDefaultLists()
+        recomputeWordArrays()
+    }
+
+    // MARK: - List CRUD
+
+    func createList(name: String, language: String) -> VocabList {
+        let list = VocabList(name: name, language: language)
+        vocabLists.append(list)
+        saveVocabLists()
+        return list
+    }
+
+    func renameList(id: UUID, newName: String) {
+        if let index = vocabLists.firstIndex(where: { $0.id == id && !$0.isDefault }) {
+            vocabLists[index].name = newName
+            saveVocabLists()
+        }
+    }
+
+    func deleteList(id: UUID) {
+        vocabLists.removeAll(where: { $0.id == id && !$0.isDefault })
+        saveVocabLists()
+        recomputeWordArrays()
+    }
+
+    func addWordsToList(listId: UUID, words: [String]) -> (added: Int, duplicates: Int) {
+        guard let index = vocabLists.firstIndex(where: { $0.id == listId }) else {
+            return (0, 0)
+        }
+
+        let cleaned = words.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        let existingLowercase = Set(vocabLists[index].words.map { $0.lowercased() })
+
+        var added = 0
+        var duplicates = 0
+
+        for word in Set(cleaned) {
+            if existingLowercase.contains(word.lowercased()) {
+                duplicates += 1
+            } else {
+                vocabLists[index].words.append(word)
+                added += 1
+            }
+        }
+
+        saveVocabLists()
+        recomputeWordArrays()
+        return (added: added, duplicates: duplicates)
+    }
+
+    func removeWordFromList(listId: UUID, word: String) {
+        if let index = vocabLists.firstIndex(where: { $0.id == listId }) {
+            vocabLists[index].words.removeAll { $0 == word }
+            saveVocabLists()
+            recomputeWordArrays()
+        }
+    }
+
+    func listsForLanguage(_ language: String) -> [VocabList] {
+        vocabLists.filter { $0.language == language }
+    }
+
+    // MARK: - "My Words" list helper (backward compat for BookReaderView OCR capture)
+
+    private func myWordsList(for language: String) -> UUID {
+        if let existing = vocabLists.first(where: { $0.name == "My Words" && $0.language == language && !$0.isDefault }) {
+            return existing.id
+        }
+        let list = createList(name: "My Words", language: language)
+        return list.id
+    }
+
+    // MARK: - Export / Import
+
+    func exportList(id: UUID) -> Data? {
+        guard let list = vocabLists.first(where: { $0.id == id }) else { return nil }
+        let export = VocabListExport(from: list)
+        return try? JSONEncoder().encode(export)
+    }
+
+    func exportListToFile(id: UUID) -> URL? {
+        guard let list = vocabLists.first(where: { $0.id == id }),
+              let data = exportList(id: id) else { return nil }
+
+        let fileName = list.name.replacingOccurrences(of: " ", with: "_") + ".abcpal"
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+
+        do {
+            try data.write(to: tempURL)
+            return tempURL
+        } catch {
+            print("Failed to write export file: \(error)")
+            return nil
+        }
+    }
+
+    func importList(from data: Data) -> VocabList? {
+        guard let export = try? JSONDecoder().decode(VocabListExport.self, from: data) else { return nil }
+
+        let list = VocabList(
+            name: export.name,
+            language: export.language,
+            words: export.words
+        )
+        vocabLists.append(list)
+        saveVocabLists()
+        recomputeWordArrays()
+        return list
+    }
+
+    func importList(from url: URL) -> VocabList? {
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return importList(from: data)
+    }
+
+    // MARK: - Mastery
+
     func loadMastery() {
-        // Load mastery data from UserDefaults
         if let englishData = UserDefaults.standard.dictionary(forKey: englishMasteryKey) as? [String: Int] {
             englishMastery = englishData
         }
-        
+
         if let frenchData = UserDefaults.standard.dictionary(forKey: frenchMasteryKey) as? [String: Int] {
             frenchMastery = frenchData
         }
     }
-    
+
     func saveMastery(for language: String) {
         if language == "en-US" {
             UserDefaults.standard.set(englishMastery, forKey: englishMasteryKey)
@@ -81,9 +263,8 @@ class VocabularyManager: ObservableObject {
             UserDefaults.standard.set(frenchMastery, forKey: frenchMasteryKey)
         }
     }
-    
+
     func updateMastery(word: String, language: String, count: Int) {
-        // Use lowercase for mastery tracking to handle proper nouns consistently
         let masteryKey = word.lowercased()
         if language == "en-US" {
             englishMastery[masteryKey] = count
@@ -93,9 +274,8 @@ class VocabularyManager: ObservableObject {
             saveMastery(for: language)
         }
     }
-    
+
     func getMastery(for word: String, language: String) -> Int {
-        // Use lowercase for mastery tracking to handle proper nouns consistently
         let masteryKey = word.lowercased()
         if language == "en-US" {
             return englishMastery[masteryKey] ?? 0
@@ -104,7 +284,7 @@ class VocabularyManager: ObservableObject {
         }
         return 0
     }
-    
+
     func resetMastery(for language: String) {
         if language == "en-US" {
             englishMastery = [:]
@@ -114,157 +294,100 @@ class VocabularyManager: ObservableObject {
             UserDefaults.standard.removeObject(forKey: frenchMasteryKey)
         }
     }
-    
+
+    // MARK: - Backward-compatible addCustomWords (routes to "My Words" list)
+
     func addCustomWords(_ words: [String], language: String) -> (added: Int, duplicates: Int) {
-        // Clean words but preserve case for proper nouns
-        let cleanedWords = words.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        
-        let uniqueNewWords = Set(cleanedWords)
-        var addedCount = 0
-        var duplicateCount = 0
-        
-        if language == "en-US" {
-            // Check for duplicates using case-insensitive comparison
-            let existingWordsLowercase = Set(englishWords.map { $0.lowercased() })
-            let existingCustom = UserDefaults.standard.stringArray(forKey: customEnglishWordsKey) ?? []
-            
-            // Count new vs duplicate words
-            for word in uniqueNewWords {
-                if existingWordsLowercase.contains(word.lowercased()) {
-                    duplicateCount += 1
-                } else {
-                    addedCount += 1
-                }
-            }
-            
-            // Only add truly new words (case-insensitive check)
-            let newWordsToAdd = uniqueNewWords.filter { !existingWordsLowercase.contains($0.lowercased()) }
-            let allCustom = Array(Set(existingCustom + newWordsToAdd))
-            UserDefaults.standard.set(allCustom, forKey: customEnglishWordsKey)
-            
-            // Reload vocabulary to include new words (preserving case)
-            englishWords = Array(Set(englishWords + newWordsToAdd)).sorted { $0.lowercased() < $1.lowercased() }
-        } else if language == "fr-CA" {
-            // Check for duplicates using case-insensitive comparison
-            let existingWordsLowercase = Set(frenchWords.map { $0.lowercased() })
-            let existingCustom = UserDefaults.standard.stringArray(forKey: customFrenchWordsKey) ?? []
-            
-            // Count new vs duplicate words
-            for word in uniqueNewWords {
-                if existingWordsLowercase.contains(word.lowercased()) {
-                    duplicateCount += 1
-                } else {
-                    addedCount += 1
-                }
-            }
-            
-            // Only add truly new words (case-insensitive check)
-            let newWordsToAdd = uniqueNewWords.filter { !existingWordsLowercase.contains($0.lowercased()) }
-            let allCustom = Array(Set(existingCustom + newWordsToAdd))
-            UserDefaults.standard.set(allCustom, forKey: customFrenchWordsKey)
-            
-            // Reload vocabulary to include new words (preserving case)
-            frenchWords = Array(Set(frenchWords + newWordsToAdd)).sorted { $0.lowercased() < $1.lowercased() }
-        }
-        
-        return (added: addedCount, duplicates: duplicateCount)
+        let listId = myWordsList(for: language)
+        let result = addWordsToList(listId: listId, words: words)
+
+        // Also persist to legacy custom words key for safety
+        let key = language == "en-US" ? customEnglishWordsKey : customFrenchWordsKey
+        let existing = UserDefaults.standard.stringArray(forKey: key) ?? []
+        let cleaned = words.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        let existingLower = Set(existing.map { $0.lowercased() })
+        let newWords = cleaned.filter { !existingLower.contains($0.lowercased()) }
+        UserDefaults.standard.set(existing + newWords, forKey: key)
+
+        return result
     }
-    
+
     func importVocabularyFromText(_ text: String, language: String) -> (added: Int, duplicates: Int) {
-        // Detect proper nouns before lowercasing so we can preserve their capitalization
         let properNouns = ProperNounDetector.detectProperNouns(in: text, language: language)
 
-        // Parse text into words, preserving original case
         let rawWords = text
             .components(separatedBy: .whitespacesAndNewlines)
             .flatMap { $0.components(separatedBy: .punctuationCharacters) }
             .filter { $0.count > 2 }
             .filter { !$0.isEmpty }
 
-        // Lowercase non-proper-nouns, keep original case for detected names
         let processedWords = rawWords.map { word -> String in
             if properNouns.contains(word.lowercased()) {
-                return word // preserve original capitalization
+                return word
             }
             return word.lowercased()
         }
 
         return addCustomWords(Array(Set(processedWords)), language: language)
     }
-    
+
     func getActiveWords(for language: String) -> [String] {
         let allWords = language == "en-US" ? englishWords : frenchWords
         let mastery = language == "en-US" ? englishMastery : frenchMastery
-        
-        // Filter out words that have been mastered (2+ correct on first attempt)
-        // Use lowercase for mastery lookup to handle proper nouns
         return allWords.filter { (mastery[$0.lowercased()] ?? 0) < 2 }
     }
-    
+
     func getMasteredWords(for language: String) -> [String] {
         let allWords = language == "en-US" ? englishWords : frenchWords
         let mastery = language == "en-US" ? englishMastery : frenchMastery
-        
-        // Return words that have been mastered
-        // Use lowercase for mastery lookup to handle proper nouns
         return allWords.filter { (mastery[$0.lowercased()] ?? 0) >= 2 }
     }
-    
+
     func deleteWord(_ word: String, language: String) {
+        // Remove from all non-default lists for this language
+        for i in vocabLists.indices where vocabLists[i].language == language && !vocabLists[i].isDefault {
+            vocabLists[i].words.removeAll { $0 == word }
+        }
+        saveVocabLists()
+        recomputeWordArrays()
+
+        // Remove mastery
         if language == "en-US" {
-            // Remove exact match from words list
-            englishWords.removeAll { $0 == word }
-            // Remove mastery using lowercase key
             englishMastery.removeValue(forKey: word.lowercased())
-            
-            // Remove from custom words if it exists there (exact match)
-            var customWords = UserDefaults.standard.stringArray(forKey: customEnglishWordsKey) ?? []
-            customWords.removeAll { $0 == word }
-            UserDefaults.standard.set(customWords, forKey: customEnglishWordsKey)
-            
             saveMastery(for: language)
         } else if language == "fr-CA" {
-            // Remove exact match from words list
-            frenchWords.removeAll { $0 == word }
-            // Remove mastery using lowercase key
             frenchMastery.removeValue(forKey: word.lowercased())
-            
-            // Remove from custom words if it exists there (exact match)
-            var customWords = UserDefaults.standard.stringArray(forKey: customFrenchWordsKey) ?? []
-            customWords.removeAll { $0 == word }
-            UserDefaults.standard.set(customWords, forKey: customFrenchWordsKey)
-            
             saveMastery(for: language)
         }
+
+        // Also remove from legacy custom words
+        let key = language == "en-US" ? customEnglishWordsKey : customFrenchWordsKey
+        var customWords = UserDefaults.standard.stringArray(forKey: key) ?? []
+        customWords.removeAll { $0 == word }
+        UserDefaults.standard.set(customWords, forKey: key)
     }
-    
+
     func deleteAllWords(for language: String) {
+        // Remove all non-default lists for this language
+        vocabLists.removeAll(where: { $0.language == language && !$0.isDefault })
+        saveVocabLists()
+        recomputeWordArrays()
+
         if language == "en-US" {
-            // Clear ALL words
-            englishWords = []
-            
-            // Clear all custom words
             UserDefaults.standard.removeObject(forKey: customEnglishWordsKey)
-            
-            // Clear all mastery
             englishMastery = [:]
             UserDefaults.standard.removeObject(forKey: englishMasteryKey)
         } else if language == "fr-CA" {
-            // Clear ALL words
-            frenchWords = []
-            
-            // Clear all custom words
             UserDefaults.standard.removeObject(forKey: customFrenchWordsKey)
-            
-            // Clear all mastery
             frenchMastery = [:]
             UserDefaults.standard.removeObject(forKey: frenchMasteryKey)
         }
     }
-    
+
     func restoreDefaultWords(for language: String) {
-        // Clear custom words first
+        // Clear custom words and lists
+        vocabLists.removeAll(where: { $0.language == language && !$0.isDefault })
+
         if language == "en-US" {
             UserDefaults.standard.removeObject(forKey: customEnglishWordsKey)
             englishMastery = [:]
@@ -274,8 +397,9 @@ class VocabularyManager: ObservableObject {
             frenchMastery = [:]
             UserDefaults.standard.removeObject(forKey: frenchMasteryKey)
         }
-        
-        // Reload vocabulary (will load defaults only)
-        loadVocabulary()
+
+        saveVocabLists()
+        rebuildDefaultLists()
+        recomputeWordArrays()
     }
 }

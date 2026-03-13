@@ -661,10 +661,12 @@ struct VocabQuizView: View {
 
     func speak(word: String) {
         print("🔊 VocabQuiz: Speaking word '\(word)'")
-        let utterance = AVSpeechUtterance(string: word)
+        // Append a period to prevent the final consonant from being cut off by TTS
+        let utterance = AVSpeechUtterance(string: word + ".")
         utterance.voice = AVSpeechSynthesisVoice(language: language)
         utterance.rate = 0.25  // Restore reasonable speed
         utterance.preUtteranceDelay = 0.3  // Longer delay to ensure clean start and avoid cutoff
+        utterance.postUtteranceDelay = 0.1
         synthesizer.speak(utterance)
     }
     

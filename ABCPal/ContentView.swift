@@ -50,8 +50,18 @@ struct ContentView: View {
                 selectedLearningType = nil
             })
         } else if let lang = selectedLanguage, selectedLearningType == "vocab" {
-            VocabQuizView(language: lang, goBack: {
+            VocabModeSelectionView(language: lang, onModeSelected: { mode in
+                selectedLearningType = mode
+            }, onBack: {
                 selectedLearningType = nil
+            })
+        } else if let lang = selectedLanguage, selectedLearningType == "vocab_word" {
+            VocabQuizView(language: lang, goBack: {
+                selectedLearningType = "vocab"
+            })
+        } else if let lang = selectedLanguage, selectedLearningType == "vocab_sound" {
+            VocabSoundQuizView(language: lang, goBack: {
+                selectedLearningType = "vocab"
             })
         } else if let lang = selectedLanguage, selectedLearningType == "read_book" {
             BookReaderView(language: lang, goBack: {
