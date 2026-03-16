@@ -46,8 +46,18 @@ struct ContentView: View {
                 showNameInput = false
             })
         } else if let lang = selectedLanguage, selectedLearningType == "numbers" {
-            NumbersQuizView(language: lang, goBack: {
+            NumbersModeSelectionView(language: lang, onModeSelected: { mode in
+                selectedLearningType = mode
+            }, onBack: {
                 selectedLearningType = nil
+            })
+        } else if let lang = selectedLanguage, selectedLearningType == "numbers_find" {
+            NumbersQuizView(language: lang, goBack: {
+                selectedLearningType = "numbers"
+            })
+        } else if let lang = selectedLanguage, selectedLearningType == "numbers_say" {
+            NumbersSayView(language: lang, goBack: {
+                selectedLearningType = "numbers"
             })
         } else if let lang = selectedLanguage, selectedLearningType == "vocab" {
             VocabModeSelectionView(language: lang, onModeSelected: { mode in

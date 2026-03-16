@@ -148,11 +148,23 @@ struct LanguageSelectionView: View {
         }
         .onAppear {
             if !hasSpoken {
-                // Only play the English prompt on first appearance
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self.speakText(self.englishPrompt, language: "en-US")
-                    self.hasSpoken = true
+                // Suppress welcome message if shared content is pending
+                // (the shared content view will handle its own TTS)
+                let hasSharedContent: Bool = {
+                    guard let container = FileManager.default.containerURL(
+                        forSecurityApplicationGroupIdentifier: "group.com.edmiidz.ABCPal"
+                    ) else { return false }
+                    let hasImage = FileManager.default.fileExists(atPath: container.appendingPathComponent("shared_image.png").path)
+                    let hasText = FileManager.default.fileExists(atPath: container.appendingPathComponent("shared_text.txt").path)
+                    return hasImage || hasText
+                }()
+
+                if !hasSharedContent {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        self.speakText(self.englishPrompt, language: "en-US")
+                    }
                 }
+                self.hasSpoken = true
             }
         }
         .sheet(isPresented: $showingMenu) {
