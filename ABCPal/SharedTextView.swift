@@ -31,7 +31,7 @@ struct SharedTextView: View {
                         }) {
                             HStack {
                                 Image(systemName: "xmark")
-                                Text(language == "fr-CA" ? "Fermer" : "Close")
+                                Text(language == "fr-CA" ? "Fermer" : language == "ja-JP" ? "閉じる" : "Close")
                             }
                             .padding(8)
                             .foregroundColor(.blue)
@@ -53,7 +53,7 @@ struct SharedTextView: View {
                         Button(action: { readTextAloud(language: language) }) {
                             HStack {
                                 Image(systemName: "speaker.wave.2.fill")
-                                Text(language == "fr-CA" ? "Lire à haute voix" : "Read Aloud")
+                                Text(language == "fr-CA" ? "Lire à haute voix" : language == "ja-JP" ? "読み上げ" : "Read Aloud")
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -65,7 +65,7 @@ struct SharedTextView: View {
                         Button(action: { showingVocabCapture = true }) {
                             HStack {
                                 Image(systemName: "text.badge.plus")
-                                Text(language == "fr-CA" ? "Capturer le vocabulaire" : "Capture Vocabulary")
+                                Text(language == "fr-CA" ? "Capturer le vocabulaire" : language == "ja-JP" ? "語彙をキャプチャ" : "Capture Vocabulary")
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -80,7 +80,7 @@ struct SharedTextView: View {
                         }) {
                             HStack {
                                 Image(systemName: "xmark.circle")
-                                Text(language == "fr-CA" ? "Fermer" : "Close")
+                                Text(language == "fr-CA" ? "Fermer" : language == "ja-JP" ? "閉じる" : "Close")
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -121,18 +121,18 @@ struct SharedTextView: View {
                 Text("Choose language")
                     .font(.headline)
 
-                HStack(spacing: 30) {
+                HStack(spacing: 16) {
                     Button(action: {
                         selectedLanguage = "en-US"
                         readTextAloud(language: "en-US")
                     }) {
                         VStack {
                             Text("🇺🇸")
-                                .font(.system(size: 50))
+                                .font(.system(size: 40))
                             Text("English")
-                                .font(.headline)
+                                .font(.subheadline)
                         }
-                        .frame(width: 120, height: 120)
+                        .frame(width: 100, height: 100)
                         .background(Color.blue.opacity(0.15))
                         .cornerRadius(16)
                     }
@@ -143,11 +143,26 @@ struct SharedTextView: View {
                     }) {
                         VStack {
                             Text("🇫🇷")
-                                .font(.system(size: 50))
+                                .font(.system(size: 40))
                             Text("Français")
-                                .font(.headline)
+                                .font(.subheadline)
                         }
-                        .frame(width: 120, height: 120)
+                        .frame(width: 100, height: 100)
+                        .background(Color.blue.opacity(0.15))
+                        .cornerRadius(16)
+                    }
+
+                    Button(action: {
+                        selectedLanguage = "ja-JP"
+                        readTextAloud(language: "ja-JP")
+                    }) {
+                        VStack {
+                            Text("🇯🇵")
+                                .font(.system(size: 40))
+                            Text("日本語")
+                                .font(.subheadline)
+                        }
+                        .frame(width: 100, height: 100)
                         .background(Color.blue.opacity(0.15))
                         .cornerRadius(16)
                     }
@@ -166,7 +181,7 @@ struct SharedTextView: View {
     private func readTextAloud(language: String) {
         synthesizer.stopSpeaking(at: .immediate)
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: language)
+        utterance.voice = voiceForLanguage(language)
         utterance.rate = 0.45
         synthesizer.speak(utterance)
     }

@@ -62,10 +62,12 @@ struct ABCPalApp: App {
     }
 
     private func handleIncomingFile(url: URL) {
+        print("ABCPal: handleIncomingFile called with URL: \(url)")
         // Handle custom URL scheme from Share Extension
         if url.scheme == "abcpal" {
+            print("ABCPal: Received abcpal:// URL, host=\(url.host ?? "nil")")
             // Small delay to ensure the extension has finished writing
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 if url.host == "shared-image" {
                     self.loadSharedImageFromAppGroup()
                 } else if url.host == "shared-text" {
@@ -112,11 +114,23 @@ struct ABCPalApp: App {
 
     @MainActor
     private func checkForSharedContent() async {
-        if sharedImage == nil {
-            loadSharedImageFromAppGroup()
-        }
-        if sharedText == nil {
-            loadSharedTextFromAppGroup()
+        print("ABCPal: checkForSharedContent called")
+        // Try multiple times in case the share extension hasn't finished writing yet
+        for attempt in 1...3 {
+            if sharedImage == nil {
+                loadSharedImageFromAppGroup()
+            }
+            if sharedText == nil {
+                loadSharedTextFromAppGroup()
+            }
+            if sharedImage != nil || sharedText != nil {
+                print("ABCPal: Found shared content on attempt \(attempt)")
+                break
+            }
+            if attempt < 3 {
+                print("ABCPal: No shared content found on attempt \(attempt), retrying...")
+                try? await Task.sleep(nanoseconds: 500_000_000)
+            }
         }
     }
 
@@ -124,13 +138,24 @@ struct ABCPalApp: App {
         guard let containerURL = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: "group.com.edmiidz.ABCPal"
         ) else {
+            print("ABCPal: Cannot access app group container")
             return
         }
 
         let fileURL = containerURL.appendingPathComponent("shared_image.png")
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+        print("ABCPal: Checking for shared image at: \(fileURL.path)")
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            print("ABCPal: No shared image file found")
+            return
+        }
+
+        let attrs = try? FileManager.default.attributesOfItem(atPath: fileURL.path)
+        let fileSize = attrs?[.size] as? Int ?? 0
+        print("ABCPal: Found shared image file, size: \(fileSize) bytes")
+
         guard let data = try? Data(contentsOf: fileURL),
               let image = UIImage(data: data) else {
+            print("ABCPal: Failed to load image from file")
             return
         }
 
@@ -138,13 +163,14 @@ struct ABCPalApp: App {
         try? FileManager.default.removeItem(at: fileURL)
 
         sharedImage = image
-        print("ABCPal: Loaded shared image from app group")
+        print("ABCPal: Loaded shared image from app group (\(image.size.width)x\(image.size.height))")
     }
 
     private func loadSharedTextFromAppGroup() {
         guard let containerURL = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: "group.com.edmiidz.ABCPal"
         ) else {
+            print("ABCPal: Cannot access app group container for text")
             return
         }
 

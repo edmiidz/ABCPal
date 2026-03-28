@@ -35,7 +35,7 @@ struct NumbersQuizView: View {
     }
     
     var promptText: String {
-        language == "fr-CA" ? "Trouve le nombre" : "Find the number"
+        language == "fr-CA" ? "Trouve le nombre" : language == "ja-JP" ? "数字を見つけて" : "Find the number"
     }
     
     var body: some View {
@@ -61,7 +61,7 @@ struct NumbersQuizView: View {
                         }) {
                             HStack {
                                 Image(systemName: "arrow.backward")
-                                Text(language == "fr-CA" ? "Terminé" : "Done")
+                                Text(language == "fr-CA" ? "Terminé" : language == "ja-JP" ? "完了" : "Done")
                             }
                             .font(.title2)
                             .padding()
@@ -78,7 +78,7 @@ struct NumbersQuizView: View {
                         }) {
                             HStack {
                                 Image(systemName: "arrow.clockwise")
-                                Text(language == "fr-CA" ? "Pratiquer encore" : "Practice More")
+                                Text(language == "fr-CA" ? "Pratiquer encore" : language == "ja-JP" ? "もっと練習" : "Practice More")
                             }
                             .font(.title2)
                             .padding()
@@ -101,7 +101,7 @@ struct NumbersQuizView: View {
                             }) {
                                 HStack {
                                     Image(systemName: "arrow.backward")
-                                    Text(language == "fr-CA" ? "Retour" : "Back")
+                                    Text(language == "fr-CA" ? "Retour" : language == "ja-JP" ? "戻る" : "Back")
                                 }
                                 .padding(8)
                                 .foregroundColor(.blue)
@@ -223,7 +223,7 @@ struct NumbersQuizView: View {
                         }) {
                             HStack {
                                 Image(systemName: "arrow.backward")
-                                Text(language == "fr-CA" ? "Retour" : "Back")
+                                Text(language == "fr-CA" ? "Retour" : language == "ja-JP" ? "戻る" : "Back")
                             }
                             .padding(8)
                             .foregroundColor(.blue)
@@ -377,7 +377,7 @@ struct NumbersQuizView: View {
                     celebrationNumber = selected
                     speak(number: currentNumber)
                 } else {
-                    feedback = language == "fr-CA" ? "Bravo!" : "Good job!"
+                    feedback = language == "fr-CA" ? "Bravo!" : language == "ja-JP" ? "すごい！" : "Good job!"
                     speak(text: feedback)
                     
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
@@ -398,7 +398,7 @@ struct NumbersQuizView: View {
             thinkingNumber = selected
             isFirstAttempt = false
             
-            feedback = language == "fr-CA" ? "Non, c'est \(selected)." : "No, that is \(selected)."
+            feedback = language == "fr-CA" ? "Non, c'est \(selected)." : language == "ja-JP" ? "いいえ、それは\(selected)です。" : "No, that is \(selected)."
             speak(text: feedback)
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -418,14 +418,14 @@ struct NumbersQuizView: View {
     func speak(text: String) {
         guard !text.isEmpty else { return }
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: language)
+        utterance.voice = voiceForLanguage(language)
         utterance.rate = 0.4
         synthesizer.speak(utterance)
     }
     
     func speak(number: Int) {
         let utterance = AVSpeechUtterance(string: String(number))
-        utterance.voice = AVSpeechSynthesisVoice(language: language)
+        utterance.voice = voiceForLanguage(language)
         utterance.rate = 0.3
         synthesizer.speak(utterance)
     }

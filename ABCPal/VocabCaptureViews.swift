@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import NaturalLanguage
 
 // Vocabulary capture view
 struct VocabCaptureView: View {
@@ -22,15 +23,28 @@ struct VocabCaptureView: View {
 
     // Extract words while preserving original case for display, excluding existing vocabulary
     var extractedWords: [(original: String, lowercase: String)] {
-        let words = text
-            .components(separatedBy: .whitespacesAndNewlines)
-            .flatMap { $0.components(separatedBy: .punctuationCharacters) }
-            .filter { $0.count > 2 }
-            .filter { !$0.isEmpty }
+        let tokenizer = NLTokenizer(unit: .word)
+        let nlLanguage: NLLanguage
+        switch language {
+        case "fr-CA": nlLanguage = .french
+        case "ja-JP": nlLanguage = .japanese
+        default: nlLanguage = .english
+        }
+        tokenizer.setLanguage(nlLanguage)
+        tokenizer.string = text
+
+        var words: [String] = []
+        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { range, _ in
+            let word = String(text[range])
+            if !word.isEmpty && (language == "ja-JP" || word.count > 2) {
+                words.append(word)
+            }
+            return true
+        }
 
         // Get existing vocabulary words (lowercased) to filter duplicates
         let existingWords: Set<String> = {
-            let vocabWords = language == "en-US" ? vocabManager.englishWords : vocabManager.frenchWords
+            let vocabWords = vocabManager.wordsForLanguage(language)
             return Set(vocabWords.map { $0.lowercased() })
         }()
 
@@ -52,7 +66,7 @@ struct VocabCaptureView: View {
         NavigationView {
             VStack {
                 HStack {
-                    Text(language == "fr-CA" ? "Sélectionnez les mots à ajouter" : "Select words to add")
+                    Text(language == "fr-CA" ? "Sélectionnez les mots à ajouter" : language == "ja-JP" ? "追加する単語を選択" : "Select words to add")
                         .font(.headline)
 
                     Spacer()
@@ -67,8 +81,8 @@ struct VocabCaptureView: View {
                         }
                     }) {
                         Text(selectedWords.count == extractedWords.count ?
-                             (language == "fr-CA" ? "Désélectionner tout" : "Deselect All") :
-                             (language == "fr-CA" ? "Sélectionner tout" : "Select All"))
+                             (language == "fr-CA" ? "Désélectionner tout" : language == "ja-JP" ? "全解除" : "Deselect All") :
+                             (language == "fr-CA" ? "Sélectionner tout" : language == "ja-JP" ? "全選択" : "Select All"))
                             .font(.caption)
                             .foregroundColor(.blue)
                     }
@@ -83,7 +97,7 @@ struct VocabCaptureView: View {
                             Image(systemName: "checkmark.circle")
                                 .font(.system(size: 50))
                                 .foregroundColor(.green)
-                            Text(language == "fr-CA" ? "Tous les mots sont déjà dans votre vocabulaire!" : "All words are already in your vocabulary!")
+                            Text(language == "fr-CA" ? "Tous les mots sont déjà dans votre vocabulaire!" : language == "ja-JP" ? "すべての単語がすでに語彙に含まれています！" : "All words are already in your vocabulary!")
                                 .font(.headline)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal)
@@ -115,17 +129,8 @@ struct VocabCaptureView: View {
                 }
                 .onAppear {
                     if !hasInitialized {
-                        let rawWords = text
-                            .components(separatedBy: .whitespacesAndNewlines)
-                            .flatMap { $0.components(separatedBy: .punctuationCharacters) }
-                            .filter { $0.count > 2 && !$0.isEmpty }
-                        let existingCount = (language == "en-US" ? vocabManager.englishWords : vocabManager.frenchWords).count
-                        print("VocabCaptureView onAppear: text length=\(text.count), language=\(language), rawWords=\(rawWords.count), existingVocab=\(existingCount), extractedWords=\(extractedWords.count)")
-                        if extractedWords.isEmpty && !rawWords.isEmpty {
-                            let existing = Set((language == "en-US" ? vocabManager.englishWords : vocabManager.frenchWords).map { $0.lowercased() })
-                            let filtered = rawWords.filter { existing.contains($0.lowercased()) }
-                            print("VocabCaptureView: All \(rawWords.count) words already in vocab! Sample existing matches: \(filtered.prefix(10))")
-                        }
+                        let existingCount = vocabManager.wordsForLanguage(language).count
+                        print("VocabCaptureView onAppear: text length=\(text.count), language=\(language), existingVocab=\(existingCount), extractedWords=\(extractedWords.count)")
                         // Initialize with all words selected
                         selectedWords = Set(extractedWords.map { $0.lowercase })
                         // Run NLTagger on full text for proper noun detection
@@ -135,14 +140,14 @@ struct VocabCaptureView: View {
                 }
 
                 HStack {
-                    Button(language == "fr-CA" ? "Annuler" : "Cancel") {
+                    Button(language == "fr-CA" ? "Annuler" : language == "ja-JP" ? "キャンセル" : "Cancel") {
                         presentationMode.wrappedValue.dismiss()
                     }
                     .padding()
 
                     Spacer()
 
-                    Button(language == "fr-CA" ? "Suivant" : "Next") {
+                    Button(language == "fr-CA" ? "Suivant" : language == "ja-JP" ? "次へ" : "Next") {
                         // Check if any selected words start with capital letter
                         let capitalizedWords = extractedWords.filter { wordPair in
                             selectedWords.contains(wordPair.lowercase) &&
@@ -214,12 +219,12 @@ struct ProperNounSelectionView: View {
     var body: some View {
         NavigationView {
             VStack {
-                Text(language == "fr-CA" ? "Noms propres détectés" : "Proper nouns detected")
+                Text(language == "fr-CA" ? "Noms propres détectés" : language == "ja-JP" ? "固有名詞が検出されました" : "Proper nouns detected")
                     .font(.headline)
                     .padding(.top)
                     .padding(.horizontal)
 
-                Text(language == "fr-CA" ? "Vérifiez et ajustez si nécessaire" : "Review and adjust if needed")
+                Text(language == "fr-CA" ? "Vérifiez et ajustez si nécessaire" : language == "ja-JP" ? "確認して調整してください" : "Review and adjust if needed")
                     .font(.caption)
                     .foregroundColor(.gray)
                     .padding(.horizontal)
@@ -254,14 +259,14 @@ struct ProperNounSelectionView: View {
                 }
 
                 HStack {
-                    Button(language == "fr-CA" ? "Retour" : "Back") {
+                    Button(language == "fr-CA" ? "Retour" : language == "ja-JP" ? "戻る" : "Back") {
                         presentationMode.wrappedValue.dismiss()
                     }
                     .padding()
 
                     Spacer()
 
-                    Button(language == "fr-CA" ? "Terminer" : "Done") {
+                    Button(language == "fr-CA" ? "Terminer" : language == "ja-JP" ? "完了" : "Done") {
                         // Separate proper nouns from regular words
                         let properNounsList = Array(properNouns)
                         let regularWords = words

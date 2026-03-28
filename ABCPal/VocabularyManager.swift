@@ -6,22 +6,28 @@
 //
 
 import Foundation
+import NaturalLanguage
 
 class VocabularyManager: ObservableObject {
     static let shared = VocabularyManager()
 
     @Published var englishWords: [String] = []
     @Published var frenchWords: [String] = []
+    @Published var japaneseWords: [String] = []
     @Published var englishMastery: [String: Int] = [:]
     @Published var frenchMastery: [String: Int] = [:]
+    @Published var japaneseMastery: [String: Int] = [:]
     @Published var vocabLists: [VocabList] = []
 
     private let englishWordsKey = "englishWordsKey"
     private let frenchWordsKey = "frenchWordsKey"
+    private let japaneseWordsKey = "japaneseWordsKey"
     private let englishMasteryKey = "englishMasteryKey"
     private let frenchMasteryKey = "frenchMasteryKey"
+    private let japaneseMasteryKey = "japaneseMasteryKey"
     private let customEnglishWordsKey = "customEnglishWordsKey"
     private let customFrenchWordsKey = "customFrenchWordsKey"
+    private let customJapaneseWordsKey = "customJapaneseWordsKey"
     private let vocabListsKey = "vocabListsKey"
     private let didMigrateToListsKey = "didMigrateToListsKey"
 
@@ -95,6 +101,15 @@ class VocabularyManager: ObservableObject {
             vocabLists.insert(defaultFrench, at: insertIndex)
         }
 
+        // Build Japanese default list from bundle
+        if let japanesePath = Bundle.main.path(forResource: "japanese_vocab", ofType: "txt"),
+           let japaneseContent = try? String(contentsOfFile: japanesePath) {
+            let words = japaneseContent.components(separatedBy: .newlines).filter { !$0.isEmpty }
+            let defaultJapanese = VocabList(name: "Default", language: "ja-JP", words: words, isDefault: true)
+            let insertIndex = vocabLists.filter { $0.isDefault }.count
+            vocabLists.insert(defaultJapanese, at: insertIndex)
+        }
+
         // Fallback if bundle loading fails
         if !vocabLists.contains(where: { $0.isDefault && $0.language == "en-US" }) {
             let filePath = "/Users/edmiidz/Projects/GitHub/ABCPal/ABCPal/english_vocab.txt"
@@ -120,9 +135,11 @@ class VocabularyManager: ObservableObject {
     func recomputeWordArrays() {
         let englishLists = vocabLists.filter { $0.language == "en-US" }
         let frenchLists = vocabLists.filter { $0.language == "fr-CA" }
+        let japaneseLists = vocabLists.filter { $0.language == "ja-JP" }
 
         englishWords = Array(Set(englishLists.flatMap { $0.words })).sorted { $0.lowercased() < $1.lowercased() }
         frenchWords = Array(Set(frenchLists.flatMap { $0.words })).sorted { $0.lowercased() < $1.lowercased() }
+        japaneseWords = Array(Set(japaneseLists.flatMap { $0.words })).sorted()
     }
 
     // MARK: - Legacy loadVocabulary (now delegates to list system)
@@ -254,44 +271,54 @@ class VocabularyManager: ObservableObject {
         if let frenchData = UserDefaults.standard.dictionary(forKey: frenchMasteryKey) as? [String: Int] {
             frenchMastery = frenchData
         }
+
+        if let japaneseData = UserDefaults.standard.dictionary(forKey: japaneseMasteryKey) as? [String: Int] {
+            japaneseMastery = japaneseData
+        }
     }
 
     func saveMastery(for language: String) {
-        if language == "en-US" {
-            UserDefaults.standard.set(englishMastery, forKey: englishMasteryKey)
-        } else if language == "fr-CA" {
-            UserDefaults.standard.set(frenchMastery, forKey: frenchMasteryKey)
+        switch language {
+        case "en-US": UserDefaults.standard.set(englishMastery, forKey: englishMasteryKey)
+        case "fr-CA": UserDefaults.standard.set(frenchMastery, forKey: frenchMasteryKey)
+        case "ja-JP": UserDefaults.standard.set(japaneseMastery, forKey: japaneseMasteryKey)
+        default: break
         }
     }
 
     func updateMastery(word: String, language: String, count: Int) {
         let masteryKey = word.lowercased()
-        if language == "en-US" {
-            englishMastery[masteryKey] = count
-            saveMastery(for: language)
-        } else if language == "fr-CA" {
-            frenchMastery[masteryKey] = count
-            saveMastery(for: language)
+        switch language {
+        case "en-US": englishMastery[masteryKey] = count
+        case "fr-CA": frenchMastery[masteryKey] = count
+        case "ja-JP": japaneseMastery[masteryKey] = count
+        default: return
         }
+        saveMastery(for: language)
     }
 
     func getMastery(for word: String, language: String) -> Int {
         let masteryKey = word.lowercased()
-        if language == "en-US" {
-            return englishMastery[masteryKey] ?? 0
-        } else if language == "fr-CA" {
-            return frenchMastery[masteryKey] ?? 0
+        switch language {
+        case "en-US": return englishMastery[masteryKey] ?? 0
+        case "fr-CA": return frenchMastery[masteryKey] ?? 0
+        case "ja-JP": return japaneseMastery[masteryKey] ?? 0
+        default: return 0
         }
-        return 0
     }
 
     func resetMastery(for language: String) {
-        if language == "en-US" {
+        switch language {
+        case "en-US":
             englishMastery = [:]
             UserDefaults.standard.removeObject(forKey: englishMasteryKey)
-        } else if language == "fr-CA" {
+        case "fr-CA":
             frenchMastery = [:]
             UserDefaults.standard.removeObject(forKey: frenchMasteryKey)
+        case "ja-JP":
+            japaneseMastery = [:]
+            UserDefaults.standard.removeObject(forKey: japaneseMasteryKey)
+        default: break
         }
     }
 
@@ -302,7 +329,13 @@ class VocabularyManager: ObservableObject {
         let result = addWordsToList(listId: listId, words: words)
 
         // Also persist to legacy custom words key for safety
-        let key = language == "en-US" ? customEnglishWordsKey : customFrenchWordsKey
+        let key: String
+        switch language {
+        case "en-US": key = customEnglishWordsKey
+        case "fr-CA": key = customFrenchWordsKey
+        case "ja-JP": key = customJapaneseWordsKey
+        default: key = customEnglishWordsKey
+        }
         let existing = UserDefaults.standard.stringArray(forKey: key) ?? []
         let cleaned = words.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
         let existingLower = Set(existing.map { $0.lowercased() })
@@ -315,11 +348,24 @@ class VocabularyManager: ObservableObject {
     func importVocabularyFromText(_ text: String, language: String) -> (added: Int, duplicates: Int) {
         let properNouns = ProperNounDetector.detectProperNouns(in: text, language: language)
 
-        let rawWords = text
-            .components(separatedBy: .whitespacesAndNewlines)
-            .flatMap { $0.components(separatedBy: .punctuationCharacters) }
-            .filter { $0.count > 2 }
-            .filter { !$0.isEmpty }
+        let tokenizer = NLTokenizer(unit: .word)
+        let nlLanguage: NLLanguage
+        switch language {
+        case "fr-CA": nlLanguage = .french
+        case "ja-JP": nlLanguage = .japanese
+        default: nlLanguage = .english
+        }
+        tokenizer.setLanguage(nlLanguage)
+        tokenizer.string = text
+
+        var rawWords: [String] = []
+        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { range, _ in
+            let word = String(text[range])
+            if !word.isEmpty && (language == "ja-JP" || word.count > 2) {
+                rawWords.append(word)
+            }
+            return true
+        }
 
         let processedWords = rawWords.map { word -> String in
             if properNouns.contains(word.lowercased()) {
@@ -331,15 +377,33 @@ class VocabularyManager: ObservableObject {
         return addCustomWords(Array(Set(processedWords)), language: language)
     }
 
+    func wordsForLanguage(_ language: String) -> [String] {
+        switch language {
+        case "en-US": return englishWords
+        case "fr-CA": return frenchWords
+        case "ja-JP": return japaneseWords
+        default: return englishWords
+        }
+    }
+
+    func masteryForLanguage(_ language: String) -> [String: Int] {
+        switch language {
+        case "en-US": return englishMastery
+        case "fr-CA": return frenchMastery
+        case "ja-JP": return japaneseMastery
+        default: return englishMastery
+        }
+    }
+
     func getActiveWords(for language: String) -> [String] {
-        let allWords = language == "en-US" ? englishWords : frenchWords
-        let mastery = language == "en-US" ? englishMastery : frenchMastery
+        let allWords = wordsForLanguage(language)
+        let mastery = masteryForLanguage(language)
         return allWords.filter { (mastery[$0.lowercased()] ?? 0) < 2 }
     }
 
     func getMasteredWords(for language: String) -> [String] {
-        let allWords = language == "en-US" ? englishWords : frenchWords
-        let mastery = language == "en-US" ? englishMastery : frenchMastery
+        let allWords = wordsForLanguage(language)
+        let mastery = masteryForLanguage(language)
         return allWords.filter { (mastery[$0.lowercased()] ?? 0) >= 2 }
     }
 
@@ -352,16 +416,22 @@ class VocabularyManager: ObservableObject {
         recomputeWordArrays()
 
         // Remove mastery
-        if language == "en-US" {
-            englishMastery.removeValue(forKey: word.lowercased())
-            saveMastery(for: language)
-        } else if language == "fr-CA" {
-            frenchMastery.removeValue(forKey: word.lowercased())
-            saveMastery(for: language)
+        switch language {
+        case "en-US": englishMastery.removeValue(forKey: word.lowercased())
+        case "fr-CA": frenchMastery.removeValue(forKey: word.lowercased())
+        case "ja-JP": japaneseMastery.removeValue(forKey: word.lowercased())
+        default: break
         }
+        saveMastery(for: language)
 
         // Also remove from legacy custom words
-        let key = language == "en-US" ? customEnglishWordsKey : customFrenchWordsKey
+        let key: String
+        switch language {
+        case "en-US": key = customEnglishWordsKey
+        case "fr-CA": key = customFrenchWordsKey
+        case "ja-JP": key = customJapaneseWordsKey
+        default: key = customEnglishWordsKey
+        }
         var customWords = UserDefaults.standard.stringArray(forKey: key) ?? []
         customWords.removeAll { $0 == word }
         UserDefaults.standard.set(customWords, forKey: key)
@@ -373,14 +443,20 @@ class VocabularyManager: ObservableObject {
         saveVocabLists()
         recomputeWordArrays()
 
-        if language == "en-US" {
+        switch language {
+        case "en-US":
             UserDefaults.standard.removeObject(forKey: customEnglishWordsKey)
             englishMastery = [:]
             UserDefaults.standard.removeObject(forKey: englishMasteryKey)
-        } else if language == "fr-CA" {
+        case "fr-CA":
             UserDefaults.standard.removeObject(forKey: customFrenchWordsKey)
             frenchMastery = [:]
             UserDefaults.standard.removeObject(forKey: frenchMasteryKey)
+        case "ja-JP":
+            UserDefaults.standard.removeObject(forKey: customJapaneseWordsKey)
+            japaneseMastery = [:]
+            UserDefaults.standard.removeObject(forKey: japaneseMasteryKey)
+        default: break
         }
     }
 
@@ -388,14 +464,20 @@ class VocabularyManager: ObservableObject {
         // Clear custom words and lists
         vocabLists.removeAll(where: { $0.language == language && !$0.isDefault })
 
-        if language == "en-US" {
+        switch language {
+        case "en-US":
             UserDefaults.standard.removeObject(forKey: customEnglishWordsKey)
             englishMastery = [:]
             UserDefaults.standard.removeObject(forKey: englishMasteryKey)
-        } else if language == "fr-CA" {
+        case "fr-CA":
             UserDefaults.standard.removeObject(forKey: customFrenchWordsKey)
             frenchMastery = [:]
             UserDefaults.standard.removeObject(forKey: frenchMasteryKey)
+        case "ja-JP":
+            UserDefaults.standard.removeObject(forKey: customJapaneseWordsKey)
+            japaneseMastery = [:]
+            UserDefaults.standard.removeObject(forKey: japaneseMasteryKey)
+        default: break
         }
 
         saveVocabLists()

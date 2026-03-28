@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVFoundation
+import UIKit
 
 struct ContentView: View {
     @State private var showSplash = true
@@ -15,7 +16,8 @@ struct ContentView: View {
     @State private var selectedLearningType: String? = nil
     @State private var userName: String = ""
     @State private var showNameInput = false
-    
+    @State private var pickedImage: UIImage? = nil
+
     // Add a state variable to force refresh when username changes
     @State private var userNameRefreshToggle = false
     
@@ -73,6 +75,20 @@ struct ContentView: View {
             VocabSoundQuizView(language: lang, goBack: {
                 selectedLearningType = "vocab"
             })
+        } else if let lang = selectedLanguage, selectedLearningType == "pick_photo", let image = pickedImage {
+            ImageReaderView(
+                image: image,
+                language: lang,
+                onDismiss: {
+                    pickedImage = nil
+                    selectedLearningType = nil
+                },
+                allowNewPhoto: true,
+                onNewImage: { newImage in
+                    pickedImage = newImage
+                }
+            )
+            .id(image)
         } else if let lang = selectedLanguage, selectedLearningType == "read_book" {
             BookReaderView(language: lang, goBack: {
                 selectedLearningType = nil
@@ -97,10 +113,14 @@ struct ContentView: View {
                 }
             }, onBack: {
                 selectedLanguage = nil
+            }, onPhotoPicked: { image in
+                pickedImage = image
+                selectedLearningType = "pick_photo"
             })
         } else {
             LanguageSelectionView(onLanguageSelected: { lang in
                 selectedLanguage = lang
+                UserDefaults.standard.set(lang, forKey: "selectedLanguage")
             }, userName: getCurrentUserName())
             .id(userNameRefreshToggle) // Force view refresh when toggle changes
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("UserNameChanged"))) { _ in

@@ -21,17 +21,27 @@ struct NumbersModeSelectionView: View {
     }
 
     var promptText: String {
-        language == "fr-CA"
-            ? "Comment veux-tu pratiquer les nombres, \(userName)?"
-            : "How do you want to practice numbers, \(userName)?"
+        switch language {
+        case "fr-CA": return "Comment veux-tu pratiquer les nombres, \(userName)?"
+        case "ja-JP": return "数字をどう練習したい、\(userName)？"
+        default: return "How do you want to practice numbers, \(userName)?"
+        }
     }
 
     var findNumberText: String {
-        language == "fr-CA" ? "Trouve le nombre" : "Find the Number"
+        switch language {
+        case "fr-CA": return "Trouve le nombre"
+        case "ja-JP": return "数字を見つける"
+        default: return "Find the Number"
+        }
     }
 
     var sayNumberText: String {
-        language == "fr-CA" ? "Dis le nombre" : "Say the Number"
+        switch language {
+        case "fr-CA": return "Dis le nombre"
+        case "ja-JP": return "数字を言う"
+        default: return "Say the Number"
+        }
     }
 
     var body: some View {
@@ -112,7 +122,7 @@ struct NumbersModeSelectionView: View {
             }) {
                 HStack {
                     Image(systemName: "arrow.backward")
-                    Text(language == "fr-CA" ? "Retour" : "Back")
+                    Text(language == "fr-CA" ? "Retour" : language == "ja-JP" ? "戻る" : "Back")
                 }
                 .foregroundColor(.blue)
             }
@@ -129,7 +139,7 @@ struct NumbersModeSelectionView: View {
 
     func speak(text: String) {
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: language)
+        utterance.voice = voiceForLanguage(language)
         utterance.rate = 0.4
         synthesizer.speak(utterance)
     }

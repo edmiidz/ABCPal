@@ -20,7 +20,7 @@ struct NumbersSayView: View {
     let synthesizer = AVSpeechSynthesizer()
 
     var promptText: String {
-        language == "fr-CA" ? "Tape un nombre" : "Type a number"
+        language == "fr-CA" ? "Tape un nombre" : language == "ja-JP" ? "数字を入力してね" : "Type a number"
     }
 
     var body: some View {
@@ -35,7 +35,7 @@ struct NumbersSayView: View {
                 }) {
                     HStack {
                         Image(systemName: "arrow.backward")
-                        Text(language == "fr-CA" ? "Retour" : "Back")
+                        Text(language == "fr-CA" ? "Retour" : language == "ja-JP" ? "戻る" : "Back")
                     }
                     .padding(8)
                     .foregroundColor(.blue)
@@ -56,7 +56,7 @@ struct NumbersSayView: View {
                     }) {
                         HStack {
                             Image(systemName: "xmark.circle.fill")
-                            Text(language == "fr-CA" ? "Effacer" : "Clear")
+                            Text(language == "fr-CA" ? "Effacer" : language == "ja-JP" ? "消す" : "Clear")
                         }
                         .padding(8)
                         .foregroundColor(.red)
@@ -90,7 +90,7 @@ struct NumbersSayView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "speaker.wave.3.fill")
                         .foregroundColor(.blue)
-                    Text(language == "fr-CA" ? "Lecture..." : "Speaking...")
+                    Text(language == "fr-CA" ? "Lecture..." : language == "ja-JP" ? "読み上げ中..." : "Speaking...")
                         .foregroundColor(.blue)
                 }
                 .font(.title3)
@@ -184,7 +184,7 @@ struct NumbersSayView: View {
         synthesizer.stopSpeaking(at: .immediate)
 
         let utterance = AVSpeechUtterance(string: numberString)
-        utterance.voice = AVSpeechSynthesisVoice(language: language)
+        utterance.voice = voiceForLanguage(language)
         utterance.rate = 0.3
         synthesizer.speak(utterance)
 

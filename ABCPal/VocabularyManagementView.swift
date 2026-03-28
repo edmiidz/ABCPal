@@ -29,7 +29,12 @@ struct VocabularyManagementView: View {
     @State private var shareFileURL: URL?
 
     var languageName: String {
-        language == "en-US" ? "English" : "French"
+        switch language {
+        case "en-US": return "English"
+        case "fr-CA": return "French"
+        case "ja-JP": return "Japanese"
+        default: return "English"
+        }
     }
 
     var masteredWords: [String] {

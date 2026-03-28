@@ -198,7 +198,7 @@ struct QuizView: View {
                             }) {
                                 HStack {
                                     Image(systemName: "arrow.backward")
-                                    Text(language == "fr-CA" ? "Retour" : "Back")
+                                    Text(language == "fr-CA" ? "Retour" : language == "ja-JP" ? "戻る" : "Back")
                                 }
                                 .padding(8)
                                 .foregroundColor(.blue)
@@ -258,7 +258,7 @@ struct QuizView: View {
                                 }) {
                                     HStack {
                                         Image(systemName: "arrow.backward")
-                                        Text(language == "fr-CA" ? "Retour" : "Back")
+                                        Text(language == "fr-CA" ? "Retour" : language == "ja-JP" ? "戻る" : "Back")
                                     }
                                     .padding(8)
                                     .foregroundColor(.blue)
@@ -305,7 +305,7 @@ struct QuizView: View {
                                 }) {
                                     HStack {
                                         Image(systemName: "arrow.backward")
-                                        Text(language == "fr-CA" ? "Retour" : "Back")
+                                        Text(language == "fr-CA" ? "Retour" : language == "ja-JP" ? "戻る" : "Back")
                                     }
                                     .padding(8)
                                     .foregroundColor(.blue)
@@ -482,7 +482,7 @@ struct QuizView: View {
                     speak(letter: correctLetter)
                 } else {
                     // For subsequent correct answers, say "Bravo!" first
-                    feedback = language == "fr-CA" ? "Bravo!" : "Good job!"
+                    feedback = language == "fr-CA" ? "Bravo!" : language == "ja-JP" ? "すごい！" : "Good job!"
                     speak(text: feedback)
                     
                     // Then say the letter after a short delay
@@ -528,14 +528,14 @@ struct QuizView: View {
     func speak(text: String) {
         guard !text.isEmpty else { return }
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: language)
+        utterance.voice = voiceForLanguage(language)
         utterance.rate = 0.4
         synthesizer.speak(utterance)
     }
 
     func speak(letter: String) {
         let utterance = AVSpeechUtterance(string: letter.lowercased())
-        utterance.voice = AVSpeechSynthesisVoice(language: language)
+        utterance.voice = voiceForLanguage(language)
         utterance.rate = 0.24  // 60% of the regular 0.4 rate
         synthesizer.speak(utterance)
     }

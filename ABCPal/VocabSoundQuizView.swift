@@ -57,9 +57,11 @@ struct VocabSoundQuizView: View {
     }
 
     var promptText: String {
-        language == "fr-CA"
-            ? "Lis le mot et choisis le bon son"
-            : "Read the word and choose the right sound"
+        switch language {
+        case "fr-CA": return "Lis le mot et choisis le bon son"
+        case "ja-JP": return "言葉を読んで正しい音を選んでね"
+        default: return "Read the word and choose the right sound"
+        }
     }
 
     var body: some View {
@@ -141,7 +143,7 @@ struct VocabSoundQuizView: View {
                     }) {
                         HStack {
                             Image(systemName: "arrow.backward")
-                            Text(language == "fr-CA" ? "Retour" : "Back")
+                            Text(language == "fr-CA" ? "Retour" : language == "ja-JP" ? "戻る" : "Back")
                         }
                         .padding(8)
                         .foregroundColor(.blue)
@@ -188,7 +190,7 @@ struct VocabSoundQuizView: View {
                         }) {
                             HStack {
                                 Image(systemName: "arrow.backward")
-                                Text(language == "fr-CA" ? "Retour" : "Back")
+                                Text(language == "fr-CA" ? "Retour" : language == "ja-JP" ? "戻る" : "Back")
                             }
                             .padding(8)
                             .foregroundColor(.blue)
@@ -213,7 +215,7 @@ struct VocabSoundQuizView: View {
                         }) {
                             HStack {
                                 Image(systemName: "arrow.backward")
-                                Text(language == "fr-CA" ? "Retour" : "Back")
+                                Text(language == "fr-CA" ? "Retour" : language == "ja-JP" ? "戻る" : "Back")
                             }
                             .padding(8)
                             .foregroundColor(.blue)
@@ -327,7 +329,7 @@ struct VocabSoundQuizView: View {
 
     var progressBar: some View {
         HStack(spacing: 8) {
-            Text(language == "fr-CA" ? "Progrès:" : "Progress:")
+            Text(language == "fr-CA" ? "Progrès:" : language == "ja-JP" ? "進捗:" : "Progress:")
                 .font(.caption2)
                 .foregroundColor(.gray)
 
@@ -381,7 +383,7 @@ struct VocabSoundQuizView: View {
     // MARK: - Quiz Logic
 
     func loadWords() {
-        allWords = language == "en-US" ? vocabManager.englishWords : vocabManager.frenchWords
+        allWords = vocabManager.wordsForLanguage(language)
         print("📚 SoundQuiz: Loaded \(allWords.count) total words for language: \(language)")
     }
 
@@ -425,9 +427,11 @@ struct VocabSoundQuizView: View {
 
         guard !activeWords.isEmpty else {
             isCompleted = true
-            feedback = language == "fr-CA"
-                ? "Bravo \(userName)! Tu as maîtrisé tous les mots! 🎉🎉"
-                : "Good job \(userName)! You've mastered all the words! 🎉🎉"
+            switch language {
+            case "fr-CA": feedback = "Bravo \(userName)! Tu as maîtrisé tous les mots! 🎉🎉"
+            case "ja-JP": feedback = "すごいね\(userName)！全部の言葉をマスターしたよ！🎉🎉"
+            default: feedback = "Good job \(userName)! You've mastered all the words! 🎉🎉"
+            }
             correctWord = ""
             options = []
 
@@ -502,7 +506,7 @@ struct VocabSoundQuizView: View {
                     celebrationIndex = index
                     speak(word: correctWord)
                 } else {
-                    feedback = language == "fr-CA" ? "Bravo!" : "Good job!"
+                    feedback = language == "fr-CA" ? "Bravo!" : language == "ja-JP" ? "すごい！" : "Good job!"
                     speak(text: feedback)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
                         speak(word: correctWord)
@@ -523,9 +527,11 @@ struct VocabSoundQuizView: View {
             revealedWord = selected
             isFirstAttempt = false
 
-            feedback = language == "fr-CA"
-                ? "Non, essaie encore."
-                : "No, try again."
+            switch language {
+            case "fr-CA": feedback = "Non, essaie encore."
+            case "ja-JP": feedback = "いいえ、もう一度。"
+            default: feedback = "No, try again."
+            }
             speak(text: feedback)
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -548,7 +554,7 @@ struct VocabSoundQuizView: View {
     func speak(text: String) {
         guard !text.isEmpty else { return }
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: language)
+        utterance.voice = voiceForLanguage(language)
         utterance.rate = 0.4
         utterance.preUtteranceDelay = 0.3
         synthesizer.speak(utterance)
@@ -557,7 +563,7 @@ struct VocabSoundQuizView: View {
     func speak(word: String) {
         // Append a period to prevent the final consonant from being cut off by TTS
         let utterance = AVSpeechUtterance(string: word + ".")
-        utterance.voice = AVSpeechSynthesisVoice(language: language)
+        utterance.voice = voiceForLanguage(language)
         utterance.rate = 0.25
         utterance.preUtteranceDelay = 0.3
         utterance.postUtteranceDelay = 0.1
@@ -569,19 +575,25 @@ struct VocabSoundQuizView: View {
         isShowingContinuePrompt = true
         isCompleted = false
 
-        feedback = language == "fr-CA"
-            ? "Bravo! Tu as terminé les 10 premiers mots! Veux-tu continuer avec les \(remainingWords.count) mots restants?"
-            : "Great job! You've completed the first 10 words! Would you like to continue with the remaining \(remainingWords.count) words?"
+        switch language {
+        case "fr-CA": feedback = "Bravo! Tu as terminé les 10 premiers mots! Veux-tu continuer avec les \(remainingWords.count) mots restants?"
+        case "ja-JP": feedback = "すごい！最初の10個の言葉が終わりました！残りの\(remainingWords.count)個の言葉を続けますか？"
+        default: feedback = "Great job! You've completed the first 10 words! Would you like to continue with the remaining \(remainingWords.count) words?"
+        }
 
         speak(text: feedback)
 
         correctWord = ""
-        options = [language == "fr-CA" ? "Oui" : "Yes", language == "fr-CA" ? "Non" : "No"]
+        switch language {
+        case "fr-CA": options = ["Oui", "Non"]
+        case "ja-JP": options = ["はい", "いいえ"]
+        default: options = ["Yes", "No"]
+        }
         areButtonsDisabled = false
     }
 
     func handleContinueResponse(_ response: String) {
-        let isYes = (response == "Yes" || response == "Oui")
+        let isYes = (response == "Yes" || response == "Oui" || response == "はい")
 
         if isYes {
             isQuizzingAllWords = true

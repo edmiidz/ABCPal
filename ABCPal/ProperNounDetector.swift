@@ -24,6 +24,8 @@ struct ProperNounDetector {
         switch language {
         case "fr-CA":
             nlLanguage = .french
+        case "ja-JP":
+            nlLanguage = .japanese
         default:
             nlLanguage = .english
         }

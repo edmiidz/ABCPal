@@ -99,7 +99,7 @@ struct LetterCaseSelectionView: View {
             }) {
                 HStack {
                     Image(systemName: "arrow.backward")
-                    Text(language == "fr-CA" ? "Retour" : "Back")
+                    Text(language == "fr-CA" ? "Retour" : language == "ja-JP" ? "戻る" : "Back")
                 }
                 .foregroundColor(.blue)
             }
@@ -116,7 +116,7 @@ struct LetterCaseSelectionView: View {
 
     func speak(text: String) {
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: language)
+        utterance.voice = voiceForLanguage(language)
         utterance.rate = 0.4
         synthesizer.speak(utterance)
     }

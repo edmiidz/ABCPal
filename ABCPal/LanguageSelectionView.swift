@@ -30,6 +30,10 @@ struct LanguageSelectionView: View {
         "\(userName), Dans quelle langue veux-tu apprendre aujourd'hui?"
     }
 
+    var japanesePrompt: String {
+        "\(userName)、今日はどの言語を勉強したいですか？"
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Menu button row at the very top
@@ -84,6 +88,21 @@ struct LanguageSelectionView: View {
                     .foregroundColor(.primary)
                 }
                 .buttonStyle(PlainButtonStyle())
+
+                // Japanese prompt with speaker
+                Button(action: {
+                    synthesizer.stopSpeaking(at: .immediate)
+                    speakText(japanesePrompt, language: "ja-JP")
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "speaker.wave.2.fill")
+                        Text(japanesePrompt)
+                            .font(.title2)
+                            .multilineTextAlignment(.center)
+                    }
+                    .foregroundColor(.primary)
+                }
+                .buttonStyle(PlainButtonStyle())
             }
             .padding(.horizontal)
             
@@ -129,10 +148,35 @@ struct LanguageSelectionView: View {
                             .background(Color.blue.opacity(0.3))
                             .cornerRadius(12)
                     }
-                    
+
                     Button(action: {
                         synthesizer.stopSpeaking(at: .immediate)
                         speakText("Français", language: "fr-CA")
+                    }) {
+                        Image(systemName: "speaker.wave.2.fill")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                            .padding(8)
+                    }
+                }
+
+                // Japanese option with TTS button
+                HStack {
+                    Button(action: {
+                        synthesizer.stopSpeaking(at: .immediate)
+                        playWhooshSound()
+                        onLanguageSelected("ja-JP")
+                    }) {
+                        Text("🇯🇵 日本語")
+                            .font(.title2)
+                            .frame(minWidth: 200, minHeight: 60)
+                            .background(Color.red.opacity(0.3))
+                            .cornerRadius(12)
+                    }
+
+                    Button(action: {
+                        synthesizer.stopSpeaking(at: .immediate)
+                        speakText("日本語", language: "ja-JP")
                     }) {
                         Image(systemName: "speaker.wave.2.fill")
                             .font(.title2)
@@ -198,15 +242,7 @@ struct LanguageSelectionView: View {
         // Small delay to ensure the previous speech is fully stopped
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             let utterance = AVSpeechUtterance(string: text)
-            
-            // Try to get the voice, or use a fallback
-            if let voice = AVSpeechSynthesisVoice(language: language) {
-                utterance.voice = voice
-            } else if language.starts(with: "en") {
-                utterance.voice = AVSpeechSynthesisVoice(language: "en")
-            } else if language.starts(with: "fr") {
-                utterance.voice = AVSpeechSynthesisVoice(language: "fr")
-            }
+            utterance.voice = voiceForLanguage(language)
             
             utterance.rate = 0.4
             self.synthesizer.speak(utterance)
@@ -566,7 +602,26 @@ struct VocabularyLanguageSelectionView: View {
                     .cornerRadius(15)
                 }
                 .padding(.horizontal, 30)
-                
+
+                // Japanese option
+                Button(action: {
+                    selectedLanguage = "ja-JP"
+                    showingManagementView = true
+                }) {
+                    HStack {
+                        Text("🇯🇵")
+                            .font(.system(size: 40))
+                        Text("Japanese Vocabulary")
+                            .font(.title2)
+                            .fontWeight(.medium)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .background(Color.red.opacity(0.2))
+                    .cornerRadius(15)
+                }
+                .padding(.horizontal, 30)
+
                 Spacer()
                 Spacer()
             }

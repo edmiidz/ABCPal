@@ -75,7 +75,7 @@ struct NameInputView: View {
     
     func speak(text: String, language: String) {
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: language)
+        utterance.voice = voiceForLanguage(language)
         utterance.rate = 0.4
         synthesizer.speak(utterance)
     }

@@ -21,17 +21,27 @@ struct VocabModeSelectionView: View {
     }
 
     var promptText: String {
-        language == "fr-CA"
-            ? "Comment veux-tu pratiquer, \(userName)?"
-            : "How do you want to practice, \(userName)?"
+        switch language {
+        case "fr-CA": return "Comment veux-tu pratiquer, \(userName)?"
+        case "ja-JP": return "どう練習したい、\(userName)？"
+        default: return "How do you want to practice, \(userName)?"
+        }
     }
 
     var chooseWordText: String {
-        language == "fr-CA" ? "Choisis le mot" : "Choose the Word"
+        switch language {
+        case "fr-CA": return "Choisis le mot"
+        case "ja-JP": return "言葉を選ぶ"
+        default: return "Choose the Word"
+        }
     }
 
     var chooseSoundText: String {
-        language == "fr-CA" ? "Choisis le son" : "Choose the Sound"
+        switch language {
+        case "fr-CA": return "Choisis le son"
+        case "ja-JP": return "音を選ぶ"
+        default: return "Choose the Sound"
+        }
     }
 
     var body: some View {
@@ -112,7 +122,7 @@ struct VocabModeSelectionView: View {
             }) {
                 HStack {
                     Image(systemName: "arrow.backward")
-                    Text(language == "fr-CA" ? "Retour" : "Back")
+                    Text(language == "fr-CA" ? "Retour" : language == "ja-JP" ? "戻る" : "Back")
                 }
                 .foregroundColor(.blue)
             }
@@ -129,7 +139,7 @@ struct VocabModeSelectionView: View {
 
     func speak(text: String) {
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: language)
+        utterance.voice = voiceForLanguage(language)
         utterance.rate = 0.4
         synthesizer.speak(utterance)
     }

@@ -69,9 +69,11 @@ struct VocabQuizView: View {
     }
     
     var promptText: String {
-        language == "fr-CA"
-            ? "Écoute et choisis le bon mot"
-            : "Listen and choose the word"
+        switch language {
+        case "fr-CA": return "Écoute et choisis le bon mot"
+        case "ja-JP": return "聞いて正しい言葉を選んでね"
+        default: return "Listen and choose the word"
+        }
     }
 
     var body: some View {
@@ -211,7 +213,7 @@ struct VocabQuizView: View {
                             }) {
                                 HStack {
                                     Image(systemName: "arrow.backward")
-                                    Text(language == "fr-CA" ? "Retour" : "Back")
+                                    Text(language == "fr-CA" ? "Retour" : language == "ja-JP" ? "戻る" : "Back")
                                 }
                                 .padding(8)
                                 .foregroundColor(.blue)
@@ -248,7 +250,7 @@ struct VocabQuizView: View {
                             // Compact progress bar for current word set
                             if !currentWordSet.isEmpty && !isShowingContinuePrompt {
                                 HStack(spacing: 8) {
-                                    Text(language == "fr-CA" ? "Progrès:" : "Progress:")
+                                    Text(language == "fr-CA" ? "Progrès:" : language == "ja-JP" ? "進捗:" : "Progress:")
                                         .font(.caption2)
                                         .foregroundColor(.gray)
                                     
@@ -296,7 +298,7 @@ struct VocabQuizView: View {
                                 }) {
                                     HStack {
                                         Image(systemName: "arrow.backward")
-                                        Text(language == "fr-CA" ? "Retour" : "Back")
+                                        Text(language == "fr-CA" ? "Retour" : language == "ja-JP" ? "戻る" : "Back")
                                     }
                                     .padding(8)
                                     .foregroundColor(.blue)
@@ -357,7 +359,7 @@ struct VocabQuizView: View {
                                 }) {
                                     HStack {
                                         Image(systemName: "arrow.backward")
-                                        Text(language == "fr-CA" ? "Retour" : "Back")
+                                        Text(language == "fr-CA" ? "Retour" : language == "ja-JP" ? "戻る" : "Back")
                                     }
                                     .padding(8)
                                     .foregroundColor(.blue)
@@ -463,7 +465,7 @@ struct VocabQuizView: View {
                             // Compact progress bar for current word set (portrait mode)
                             if !currentWordSet.isEmpty && !isShowingContinuePrompt {
                                 HStack(spacing: 8) {
-                                    Text(language == "fr-CA" ? "Progrès:" : "Progress:")
+                                    Text(language == "fr-CA" ? "Progrès:" : language == "ja-JP" ? "進捗:" : "Progress:")
                                         .font(.caption2)
                                         .foregroundColor(.gray)
                                     
@@ -527,7 +529,7 @@ struct VocabQuizView: View {
     }
     
     func loadWords() {
-        allWords = language == "en-US" ? vocabManager.englishWords : vocabManager.frenchWords
+        allWords = vocabManager.wordsForLanguage(language)
         print("📚 VocabQuiz: Loaded \(allWords.count) total words for language: \(language)")
     }
     
@@ -608,7 +610,7 @@ struct VocabQuizView: View {
                     celebrationWord = selected  // Use the selected word to maintain display case
                     speak(word: correctWord)
                 } else {
-                    feedback = language == "fr-CA" ? "Bravo!" : "Good job!"
+                    feedback = language == "fr-CA" ? "Bravo!" : language == "ja-JP" ? "すごい！" : "Good job!"
                     speak(text: feedback)
                     
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
@@ -630,9 +632,11 @@ struct VocabQuizView: View {
             thinkingWord = selected
             isFirstAttempt = false  // Mark that first attempt failed
             
-            feedback = language == "fr-CA"
-                ? "Non, c'est \(selected)."
-                : "No, that is \(selected)."
+            switch language {
+            case "fr-CA": feedback = "Non, c'est \(selected)."
+            case "ja-JP": feedback = "いいえ、それは\(selected)です。"
+            default: feedback = "No, that is \(selected)."
+            }
             speak(text: feedback)
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -653,7 +657,7 @@ struct VocabQuizView: View {
         guard !text.isEmpty else { return }
         print("🔊 VocabQuiz: Speaking text '\(text)'")
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: language)
+        utterance.voice = voiceForLanguage(language)
         utterance.rate = 0.4
         utterance.preUtteranceDelay = 0.3  // Longer delay to ensure clean start and avoid cutoff
         synthesizer.speak(utterance)
@@ -663,7 +667,7 @@ struct VocabQuizView: View {
         print("🔊 VocabQuiz: Speaking word '\(word)'")
         // Append a period to prevent the final consonant from being cut off by TTS
         let utterance = AVSpeechUtterance(string: word + ".")
-        utterance.voice = AVSpeechSynthesisVoice(language: language)
+        utterance.voice = voiceForLanguage(language)
         utterance.rate = 0.25  // Restore reasonable speed
         utterance.preUtteranceDelay = 0.3  // Longer delay to ensure clean start and avoid cutoff
         utterance.postUtteranceDelay = 0.1
@@ -671,6 +675,12 @@ struct VocabQuizView: View {
     }
     
     func spellWord(_ word: String) {
+        // Skip spelling for Japanese - letter-by-letter doesn't apply to kanji/hiragana
+        guard language != "ja-JP" else {
+            // Just speak the word again instead
+            speak(word: word)
+            return
+        }
         // Spell out the word letter by letter with pauses
         let letters = word.map { String($0) }
         
@@ -682,7 +692,7 @@ struct VocabQuizView: View {
                 // Continue spelling even if AutoPlay stops (don't check isAutoPlayMode)
                 print("🔤 VocabQuiz: Speaking letter '\(letter)' at index \(index)")
                 let utterance = AVSpeechUtterance(string: String(letter))
-                utterance.voice = AVSpeechSynthesisVoice(language: language)
+                utterance.voice = voiceForLanguage(language)
                 utterance.rate = 0.15  // Even slower for spelling (25% slower than before)
                 utterance.preUtteranceDelay = 0.04  // 40ms pause before each letter
                 synthesizer.speak(utterance)
@@ -713,9 +723,11 @@ struct VocabQuizView: View {
         guard !activeWords.isEmpty else {
             isCompleted = true
             
-            feedback = language == "fr-CA"
-                ? "Bravo \(userName)! Tu as maîtrisé tous les mots! 🎉🎉"
-                : "Good job \(userName)! You've mastered all the words! 🎉🎉"
+            switch language {
+            case "fr-CA": feedback = "Bravo \(userName)! Tu as maîtrisé tous les mots! 🎉🎉"
+            case "ja-JP": feedback = "すごいね\(userName)！全部の言葉をマスターしたよ！🎉🎉"
+            default: feedback = "Good job \(userName)! You've mastered all the words! 🎉🎉"
+            }
 
             correctWord = ""
             options = []
@@ -926,14 +938,20 @@ struct VocabQuizView: View {
         isCompleted = false
         
         // Show completion message with continue option
-        feedback = language == "fr-CA"
-            ? "Bravo! Tu as terminé les 10 premiers mots! Veux-tu continuer avec les \(remainingWords.count) mots restants?"
-            : "Great job! You've completed the first 10 words! Would you like to continue with the remaining \(remainingWords.count) words?"
-        
+        switch language {
+        case "fr-CA": feedback = "Bravo! Tu as terminé les 10 premiers mots! Veux-tu continuer avec les \(remainingWords.count) mots restants?"
+        case "ja-JP": feedback = "すごい！最初の10個の言葉が終わりました！残りの\(remainingWords.count)個の言葉を続けますか？"
+        default: feedback = "Great job! You've completed the first 10 words! Would you like to continue with the remaining \(remainingWords.count) words?"
+        }
+
         speak(text: feedback)
-        
+
         // Show Yes/No buttons (using the existing options array temporarily)
-        options = [language == "fr-CA" ? "Oui" : "Yes", language == "fr-CA" ? "Non" : "No"]
+        switch language {
+        case "fr-CA": options = ["Oui", "Non"]
+        case "ja-JP": options = ["はい", "いいえ"]
+        default: options = ["Yes", "No"]
+        }
         areButtonsDisabled = false
         correctWord = "" // Clear correct word so AutoPlay doesn't try to speak it
         
@@ -942,7 +960,7 @@ struct VocabQuizView: View {
     }
     
     func handleContinueResponse(_ response: String) {
-        let isYes = (response == "Yes" || response == "Oui")
+        let isYes = (response == "Yes" || response == "Oui" || response == "はい")
         
         if isYes {
             print("📚 User chose to continue with all remaining words")
